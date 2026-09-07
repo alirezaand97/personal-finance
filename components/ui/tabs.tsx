@@ -1,0 +1,6 @@
+"use client"
+import * as React from "react"
+import { cn } from "@/lib/utils"
+export function Tabs({value,onValueChange,children,className}:{value:string;onValueChange:(v:string)=>void;children:React.ReactNode;className?:string}){return <div className={className}>{React.Children.map(children,c=>React.isValidElement(c)?React.cloneElement(c as React.ReactElement<any>,{value,onValueChange}):c)}</div>}
+export function TabsList({className,children,value,onValueChange}:{className?:string;children:React.ReactNode;value?:string;onValueChange?:(v:string)=>void}){return <div className={cn("inline-flex items-center rounded-xl bg-muted p-1",className)}>{React.Children.map(children,c=>React.isValidElement(c)?React.cloneElement(c as React.ReactElement<any>,{value,onValueChange}):c)}</div>}
+export function TabsTrigger({value:triggerValue,children,activeValue,onValueChange,className}:{value:string;children:React.ReactNode;activeValue?:string;onValueChange?:(v:string)=>void;className?:string}){return <button type="button" onClick={()=>onValueChange?.(triggerValue)} className={cn("rounded-lg px-3 py-2 text-sm font-medium transition-colors",activeValue===triggerValue?"bg-card text-foreground shadow-sm":"text-muted-foreground hover:text-foreground",className)}>{children}</button>}

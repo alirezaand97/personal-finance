@@ -1,0 +1,181 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@import "./fonts/yekan/style.css";
+@import "./fonts/yekan/fontiran.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-destructive: var(--destructive);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* =========================
+   Light Theme
+   ========================= */
+:root {
+  color-scheme: light;
+
+  --background: oklch(0.985 0.002 250);
+  --foreground: oklch(0.19 0.02 250);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.02 250);
+
+  --primary: oklch(0.55 0.21 260);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --muted: oklch(0.965 0.002 250);
+  --muted-foreground: oklch(0.48 0.015 250);
+
+  --border: oklch(0.93 0.004 250);
+  --input: oklch(0.93 0.004 250);
+
+  --ring: oklch(0.55 0.21 260);
+
+  --destructive: oklch(0.62 0.2 25);
+
+  --radius: 0.75rem;
+}
+
+/* =========================
+   Blue Theme
+   ========================= */
+
+:root[data-theme="blue"] {
+  --primary: oklch(0.55 0.21 260);
+  --ring: oklch(0.55 0.21 260);
+}
+
+
+/* =========================
+   Default Theme
+   ========================= */
+
+:root[data-theme="default"] {
+  --primary: oklch(0.46 0.12 255);
+  --ring: oklch(0.46 0.12 255);
+}
+
+
+/* =========================
+   Dark Theme
+   ========================= */
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.145 0.025 255);
+  --foreground: oklch(0.95 0.015 250);
+
+  --card: oklch(0.195 0.025 255);
+  --card-foreground: oklch(0.95 0.015 250);
+
+  --primary: oklch(0.68 0.18 255);
+  --primary-foreground: oklch(0.15 0.025 255);
+
+  --muted: oklch(0.24 0.025 255);
+  --muted-foreground: oklch(0.72 0.025 250);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+
+  --ring: oklch(0.68 0.18 255);
+}
+
+
+/* =========================
+   Dark Blue Theme
+   ========================= */
+
+.dark[data-theme="blue"] {
+  --primary: oklch(0.7 0.18 255);
+  --ring: oklch(0.7 0.18 255);
+}
+
+
+/* =========================
+   Global
+   ========================= */
+
+* {
+  @apply border-border outline-ring/50;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  @apply bg-background text-foreground;
+
+  font-family: IRANYekanX, Tahoma, Arial, sans-serif;
+}
+
+* {
+  font-family: IRANYekanX !important;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+
+/* =========================
+   Scrollbar
+   ========================= */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(
+    in oklab,
+    var(--muted-foreground) 25%,
+    transparent
+  );
+
+  border-radius: 999px;
+}
+
+
+/* =========================
+   Desktop Background
+   ========================= */
+
+@media (min-width: 640px) {
+  body {
+    background: #edf2f8;
+  }
+}
