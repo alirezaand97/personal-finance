@@ -861,13 +861,7 @@ function TransactionsScreen({
     [transactions, q, type, sort, map],
   );
 
-  const grouped = groupByDate(list);
-  const deleteTransaction = async () => {
-    if (!deleteTarget) return;
-    await db.transactions.delete(deleteTarget.id);
-    setDeleteTarget(null);
-    await onRefresh();
-  };
+
     const grouped = groupByDate(list);
   const deleteTransaction = async () => {
     if (!deleteTarget) return;
