@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PersianDatePicker } from "@/components/persian-date-picker";
+import { PersianDatePicker } from "@/components/ui/persian-date-picker";
 import {
   ArrowDownLeft,
   ArrowUpLeft,
