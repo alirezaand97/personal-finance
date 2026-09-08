@@ -36,8 +36,6 @@ import {
   X,
   Tags,
   TrendingDown,
-   Tags,
-  TrendingDown,
   Repeat,
   type LucideIcon,
 } from "lucide-react";
