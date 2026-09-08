@@ -36,6 +36,9 @@ import {
   X,
   Tags,
   TrendingDown,
+   Tags,
+  TrendingDown,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -710,6 +713,7 @@ function TransactionRow({
   settings,
   onEdit,
   onDelete,
+  onRepeat,
   revealed,
   onToggle,
 }: {
@@ -718,10 +722,11 @@ function TransactionRow({
   settings: AppSettings;
   onEdit?: () => void;
   onDelete?: () => void;
+  onRepeat?: () => void;
   revealed?: boolean;
   onToggle?: () => void;
 }) {
-  const actionable = !!(onEdit || onDelete);
+  const actionable = !!(onEdit || onDelete || onRepeat);
   return (
     <div
       className="group relative flex items-center gap-3 rounded-md shadow bg-card p-3"
@@ -753,13 +758,26 @@ function TransactionRow({
       >
         {formatMoney(transaction.amount, settings)}
       </p>
-           {actionable && (
+                 {actionable && (
         <div
           className={cn(
             "absolute left-2 top-1/2 -translate-y-1/2 gap-1 rounded-lg bg-background/95 p-1 shadow-sm",
             revealed ? "flex" : "hidden md:group-hover:flex",
           )}
         >
+          {onRepeat && (
+            <Button
+              size="icon-sm"
+              variant="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRepeat();
+              }}
+              aria-label="تکرار برای امروز"
+            >
+              <Repeat />
+            </Button>
+          )}
           {onEdit && (
             <Button
               size="icon-sm"
@@ -810,7 +828,8 @@ function TransactionsScreen({
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | TransactionType>("all");
   const [sort, setSort] = useState("new");
-  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
+   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
+  const [repeatTarget, setRepeatTarget] = useState<Transaction | null>(null);
     const [openRowId, setOpenRowId] = useState<string | null>(null);
   const map = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -847,6 +866,31 @@ function TransactionsScreen({
     if (!deleteTarget) return;
     await db.transactions.delete(deleteTarget.id);
     setDeleteTarget(null);
+    await onRefresh();
+  };
+    const grouped = groupByDate(list);
+  const deleteTransaction = async () => {
+    if (!deleteTarget) return;
+    await db.transactions.delete(deleteTarget.id);
+    setDeleteTarget(null);
+    await onRefresh();
+  };
+
+  const repeatTransaction = async () => {
+    if (!repeatTarget) return;
+    const now = new Date().toISOString();
+    await db.transactions.add({
+      id: uid(),
+      type: repeatTarget.type,
+      amount: repeatTarget.amount,
+      title: repeatTarget.title,
+      categoryId: repeatTarget.categoryId,
+      date: todayIso(),
+      note: repeatTarget.note,
+      createdAt: now,
+      updatedAt: now,
+    });
+    setRepeatTarget(null);
     await onRefresh();
   };
 
@@ -910,7 +954,7 @@ function TransactionsScreen({
                 {date}
               </h2>
               <div className="flex flex-col gap-2">
-                                  {items.map((t) => (
+                                                                    {items.map((t) => (
                   <TransactionRow
                     key={t.id}
                     transaction={t}
@@ -923,6 +967,10 @@ function TransactionsScreen({
                     onDelete={() => {
                       setOpenRowId(null);
                       setDeleteTarget(t);
+                    }}
+                    onRepeat={() => {
+                      setOpenRowId(null);
+                      setRepeatTarget(t);
                     }}
                     revealed={openRowId === t.id}
                     onToggle={() =>
@@ -965,6 +1013,35 @@ function TransactionsScreen({
               onClick={deleteTransaction}
             >
               حذف تراکنش
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!repeatTarget}
+        onOpenChange={(v) => !v && setRepeatTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>تکرار تراکنش برای امروز</DialogTitle>
+            <DialogDescription>
+              یک تراکنش جدید با همین مشخصات، با تاریخ امروز ثبت می‌شود.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl bg-muted p-3 text-sm">
+            {repeatTarget?.title} ·{" "}
+            {repeatTarget && formatMoney(repeatTarget.amount, settings)}
+          </div>
+          <div className="mt-5 flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setRepeatTarget(null)}
+            >
+              انصراف
+            </Button>
+            <Button className="flex-1" onClick={repeatTransaction}>
+              تکرار برای امروز
             </Button>
           </div>
         </DialogContent>
