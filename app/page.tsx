@@ -709,15 +709,25 @@ function TransactionRow({
   settings,
   onEdit,
   onDelete,
+  revealed,
+  onToggle,
 }: {
   transaction: Transaction;
   category?: Category;
   settings: AppSettings;
   onEdit?: () => void;
   onDelete?: () => void;
+  revealed?: boolean;
+  onToggle?: () => void;
 }) {
+  const actionable = !!(onEdit || onDelete);
   return (
-    <div className="group relative flex items-center gap-3 rounded-md shadow bg-card p-3">
+    <div
+      className="group relative flex items-center gap-3 rounded-md shadow bg-card p-3"
+      onClick={actionable ? onToggle : undefined}
+      role={actionable ? "button" : undefined}
+      tabIndex={actionable ? 0 : undefined}
+    >
       <div
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-xl",
@@ -742,13 +752,21 @@ function TransactionRow({
       >
         {formatMoney(transaction.amount, settings)}
       </p>
-      {(onEdit || onDelete) && (
-        <div className="absolute left-2 top-1/2 hidden -translate-y-1/2 gap-1 rounded-lg bg-background/95 p-1 shadow-sm group-hover:flex">
+           {actionable && (
+        <div
+          className={cn(
+            "absolute left-2 top-1/2 -translate-y-1/2 gap-1 rounded-lg bg-background/95 p-1 shadow-sm",
+            revealed ? "flex" : "hidden md:group-hover:flex",
+          )}
+        >
           {onEdit && (
             <Button
               size="icon-sm"
               variant="secondary"
-              onClick={onEdit}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
               aria-label="ویرایش"
             >
               <Edit3 />
@@ -758,7 +776,10 @@ function TransactionRow({
             <Button
               size="icon-sm"
               variant="destructive"
-              onClick={onDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               aria-label="حذف"
             >
               <Trash2 />
@@ -789,6 +810,7 @@ function TransactionsScreen({
   const [type, setType] = useState<"all" | TransactionType>("all");
   const [sort, setSort] = useState("new");
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
+    const [openRowId, setOpenRowId] = useState<string | null>(null);
   const map = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
     [categories],
@@ -887,14 +909,24 @@ function TransactionsScreen({
                 {date}
               </h2>
               <div className="flex flex-col gap-2">
-                {items.map((t) => (
+                                  {items.map((t) => (
                   <TransactionRow
                     key={t.id}
                     transaction={t}
                     category={map.get(t.categoryId)}
                     settings={settings}
-                    onEdit={() => onEdit(t)}
-                    onDelete={() => setDeleteTarget(t)}
+                    onEdit={() => {
+                      setOpenRowId(null);
+                      onEdit(t);
+                    }}
+                    onDelete={() => {
+                      setOpenRowId(null);
+                      setDeleteTarget(t);
+                    }}
+                    revealed={openRowId === t.id}
+                    onToggle={() =>
+                      setOpenRowId((cur) => (cur === t.id ? null : t.id))
+                    }
                   />
                 ))}
               </div>
