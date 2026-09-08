@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PersianDatePicker } from "@/components/persian-date-picker";
 import {
   ArrowDownLeft,
   ArrowUpLeft,
@@ -2151,8 +2152,8 @@ function AddTransaction({
   const [amount, setAmount] = useState(String(transaction?.amount ?? ""));
   const [title, setTitle] = useState(transaction?.title ?? "");
   const [categoryId, setCategoryId] = useState(transaction?.categoryId ?? "");
-  const [date, setDate] = useState(
-    transaction?.date.slice(0, 10) ?? todayIso().slice(0, 10),
+    const [date, setDate] = useState(
+    transaction?.date ?? todayIso(),
   );
   const [note, setNote] = useState(transaction?.note ?? "");
   const [error, setError] = useState("");
@@ -2162,7 +2163,7 @@ function AddTransaction({
     setAmount(String(transaction?.amount ?? ""));
     setTitle(transaction?.title ?? "");
     setCategoryId(transaction?.categoryId ?? "");
-    setDate(transaction?.date.slice(0, 10) ?? todayIso().slice(0, 10));
+    setDate(transaction?.date ?? todayIso());
     setNote(transaction?.note ?? "");
     setError("");
   }, [transaction, open]);
@@ -2185,16 +2186,11 @@ function AddTransaction({
       amount: value,
       title: title.trim(),
       categoryId,
-      date: new Date(`${date}T12:00:00`).toISOString(),
+      date,
       note: note.trim(),
       updatedAt: now,
       createdAt: transaction?.createdAt ?? now,
     };
-    if (transaction) await db.transactions.update(transaction.id, data);
-    else await db.transactions.add({ id: uid(), ...data });
-    await onSaved();
-    onClose();
-  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -2274,11 +2270,7 @@ function AddTransaction({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="mb-2 block text-sm font-medium">تاریخ</label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
+              <PersianDatePicker value={date} onChange={setDate} />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium">یادداشت</label>
