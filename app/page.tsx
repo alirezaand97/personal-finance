@@ -2191,6 +2191,11 @@ function AddTransaction({
       updatedAt: now,
       createdAt: transaction?.createdAt ?? now,
     };
+    if (transaction) await db.transactions.update(transaction.id, data);
+    else await db.transactions.add({ id: uid(), ...data });
+    await onSaved();
+    onClose();
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
