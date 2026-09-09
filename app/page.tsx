@@ -182,16 +182,17 @@ function persianDayOfMonth(date: string | Date) {
   return Number(parts.find((p) => p.type === "day")?.value);
 }
 
+type Screen =
+  | "home"
+  | "transactions"
+  | "analytics"
+  | "categories"
+  | "settings"
+  | "investments"
+  | "investmentCategories";
+
 export default function Page() {
-  const [screen, setScreen] = useState
-    | "home"
-    | "transactions"
-    | "analytics"
-    | "categories"
-    | "settings"
-    | "investments"
-    | "investmentCategories"
-  >("home");
+  const [screen, setScreen] = useState<Screen>("home");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
