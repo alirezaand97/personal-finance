@@ -37,6 +37,9 @@ import {
   Tags,
   TrendingDown,
   Repeat,
+  Landmark,
+  Gem,
+  Bitcoin,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -87,6 +90,8 @@ import {
   getAll,
   groupByDate,
   importBackup,
+  Investment,
+  InvestmentCategory,
   jalaliLabel,
   monthNames,
   seedDatabase,
@@ -122,13 +127,18 @@ const categoryIconMap: Record<string, LucideIcon> = {
   gift: Gift,
   bonus: Trophy,
   other: Package,
+  stock: TrendingUp,
+  crypto: Bitcoin,
+  gold: Gem,
+  fund: Landmark,
+  realestate: House,
 };
 
 function CategoryIcon({
   category,
   className,
 }: {
-  category?: Category;
+  category?: Category | InvestmentCategory;
   className?: string;
 }) {
   const key = category?.icon || "other";
@@ -173,20 +183,32 @@ function persianDayOfMonth(date: string | Date) {
 }
 
 export default function Page() {
-  const [screen, setScreen] = useState<
-    "home" | "transactions" | "analytics" | "categories" | "settings"
+  const [screen, setScreen] = useState
+    | "home"
+    | "transactions"
+    | "analytics"
+    | "categories"
+    | "settings"
+    | "investments"
+    | "investmentCategories"
   >("home");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [investmentCategories, setInvestmentCategories] = useState
+    InvestmentCategory[]
+  >([]);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [ready, setReady] = useState(false);
 
-  const refresh = async () => {
+const refresh = async () => {
     const data = await getAll();
     setTransactions(data.transactions);
     setCategories(data.categories);
+    setInvestments(data.investments);
+    setInvestmentCategories(data.investmentCategories);
     setSettings(data.settings ?? defaultSettings);
     setReady(true);
   };
@@ -226,11 +248,12 @@ export default function Page() {
     setShowAdd(true);
   };
 
-  const content =
+    const content =
     screen === "home" ? (
       <Dashboard
         transactions={transactions}
         categories={categories}
+        investments={investments}
         settings={settings}
         onAdd={openAdd}
         onNavigate={setScreen}
@@ -254,6 +277,20 @@ export default function Page() {
       <CategoriesScreen
         categories={categories}
         transactions={transactions}
+        onRefresh={refresh}
+      />
+    ) : screen === "investments" ? (
+      <InvestmentsScreen
+        investments={investments}
+        investmentCategories={investmentCategories}
+        settings={settings}
+        onRefresh={refresh}
+        onNavigate={setScreen}
+      />
+    ) : screen === "investmentCategories" ? (
+      <InvestmentCategoriesScreen
+        investmentCategories={investmentCategories}
+        investments={investments}
         onRefresh={refresh}
       />
     ) : (
@@ -306,17 +343,17 @@ function Header({
 function Dashboard({
   transactions,
   categories,
+  investments,
   settings,
   onAdd,
   onNavigate,
 }: {
   transactions: Transaction[];
   categories: Category[];
+  investments: Investment[];
   settings: AppSettings;
   onAdd: () => void;
-  onNavigate: (
-    v: "home" | "transactions" | "analytics" | "categories" | "settings",
-  ) => void;
+  onNavigate: (v: any) => void;
 }) {
   const current = persianMonthParts(new Date());
   const [month, setMonth] = useState(current.month - 1);
@@ -345,6 +382,10 @@ function Dashboard({
   const balance = transactions.reduce(
     (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
     0,
+  );
+    const totalInvested = useMemo(
+    () => investments.reduce((s, i) => s + i.amount, 0),
+    [investments],
   );
   const catMap = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -450,6 +491,24 @@ function Dashboard({
               </div>
             </div>
           </div>
+        </Card>
+
+                <Card
+          className="flex cursor-pointer items-center gap-3 p-4"
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate("investments")}
+        >
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <TrendingUp className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">سرمایه‌گذاری‌ها</p>
+            <p className="mt-0.5 text-sm font-bold">
+              {formatMoney(totalInvested, settings)}
+            </p>
+          </div>
+          <ChevronLeft className="shrink-0 text-muted-foreground" />
         </Card>
 
         <Card className="p-2">
@@ -1872,6 +1931,651 @@ function CategoryEditor({
               />
             </div>
           )}
+          <Button className="w-full" onClick={save} disabled={!name.trim()}>
+            {category ? "ذخیره تغییرات" : "افزودن دسته‌بندی"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InvestmentsScreen({
+  investments,
+  investmentCategories,
+  settings,
+  onRefresh,
+  onNavigate,
+}: {
+  investments: Investment[];
+  investmentCategories: InvestmentCategory[];
+  settings: AppSettings;
+  onRefresh: () => void;
+  onNavigate: (v: any) => void;
+}) {
+  const [editor, setEditor] = useState<{ investment?: Investment } | null>(
+    null,
+  );
+  const [deleteTarget, setDeleteTarget] = useState<Investment | null>(null);
+
+  const catMap = useMemo(
+    () => new Map(investmentCategories.map((c) => [c.id, c])),
+    [investmentCategories],
+  );
+
+  const total = investments.reduce((s, i) => s + i.amount, 0);
+
+  const byCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    investments.forEach((i) =>
+      map.set(i.categoryId, (map.get(i.categoryId) ?? 0) + i.amount),
+    );
+    return [...map.entries()]
+      .map(([categoryId, value], idx) => ({
+        categoryId,
+        label: catMap.get(categoryId)?.name ?? "سایر",
+        value,
+        fill:
+          catMap.get(categoryId)?.color ||
+          chartColors[idx % chartColors.length],
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [investments, catMap]);
+
+  const sorted = useMemo(
+    () => [...investments].sort((a, b) => b.date.localeCompare(a.date)),
+    [investments],
+  );
+
+  const remove = async () => {
+    if (!deleteTarget) return;
+    await db.investments.delete(deleteTarget.id);
+    setDeleteTarget(null);
+    await onRefresh();
+  };
+
+  return (
+    <>
+      <Header
+        title="سرمایه‌گذاری‌ها"
+        action={
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onNavigate("investmentCategories")}
+              aria-label="دسته‌بندی‌ها"
+            >
+              <Tags />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setEditor({})}>
+              <Plus />
+            </Button>
+          </div>
+        }
+      />
+      <div className="flex flex-col gap-4 px-4 pb-28">
+        <Card className="relative overflow-hidden border-0 bg-primary p-5 text-primary-foreground shadow-[0_20px_50px_-20px] shadow-primary/60">
+          <div className="pointer-events-none absolute -right-16 -top-20 size-52 rounded-full bg-white/10 blur-3xl" />
+          <div className="relative">
+            <p className="text-sm text-primary-foreground/70">
+              مجموع سرمایه‌گذاری
+            </p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">
+              {formatMoney(total, settings)}
+            </p>
+          </div>
+        </Card>
+
+        {investments.length === 0 ? (
+          <Card className="flex flex-col items-center border-dashed px-6 py-12 text-center shadow-none">
+            <div className="mb-4 rounded-2xl bg-primary/10 p-4 text-primary">
+              <TrendingUp />
+            </div>
+            <h2 className="font-bold">هنوز سرمایه‌گذاری ثبت نشده</h2>
+            <p className="mt-2 max-w-[250px] text-sm leading-6 text-muted-foreground">
+              دارایی‌های خود را اضافه کنید تا ترکیب سبد سرمایه‌گذاری‌تان را
+              ببینید.
+            </p>
+            <Button className="mt-5 rounded-xl" onClick={() => setEditor({})}>
+              <Plus data-icon="inline-start" /> افزودن سرمایه‌گذاری
+            </Button>
+          </Card>
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  ترکیب سبد سرمایه‌گذاری
+                </CardTitle>
+                <CardDescription>
+                  سهم هر دسته از کل سرمایه‌گذاری
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-3">
+                <div className="h-36 w-36 shrink-0">
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={byCategory}
+                        innerRadius={42}
+                        outerRadius={62}
+                        dataKey="value"
+                        strokeWidth={3}
+                      >
+                        {byCategory.map((e, i) => (
+                          <Cell key={i} fill={e.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        cursor={false}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const item = payload[0];
+                          return (
+                            <div className="rounded-sm border border-border/50 bg-background/95 px-3 py-2 shadow-lg backdrop-blur-md">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="size-2 rounded-full"
+                                  style={{
+                                    backgroundColor: item.payload.fill,
+                                  }}
+                                />
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {item.name}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm font-bold tracking-tight">
+                                {formatMoney(Number(item.value), settings)}
+                              </p>
+                            </div>
+                          );
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  {byCategory.map((p) => (
+                    <div
+                      key={p.categoryId}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <span
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ background: p.fill }}
+                      />
+                      <span className="truncate text-muted-foreground">
+                        {p.label}
+                      </span>
+                      <span className="ms-auto text-xs font-medium">
+                        {total ? Math.round((p.value / total) * 100) : 0}٪
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <section>
+              <h2 className="mb-3 font-bold">لیست سرمایه‌گذاری‌ها</h2>
+              <div className="flex flex-col gap-2">
+                {sorted.map((inv) => {
+                  const cat = catMap.get(inv.categoryId);
+                  return (
+                    <Card key={inv.id} className="flex items-center gap-3 p-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <CategoryIcon category={cat} className="size-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {inv.name}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {cat?.name ?? "سایر"} · {jalaliLabel(inv.date)}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-bold">
+                        {formatMoney(inv.amount, settings)}
+                      </p>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => setEditor({ investment: inv })}
+                        aria-label="ویرایش"
+                      >
+                        <Edit3 />
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => setDeleteTarget(inv)}
+                        aria-label="حذف"
+                      >
+                        <Trash2 />
+                      </Button>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+
+      <InvestmentEditor
+        open={!!editor}
+        investment={editor?.investment}
+        investmentCategories={investmentCategories}
+        settings={settings}
+        onClose={() => setEditor(null)}
+        onSaved={onRefresh}
+      />
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>حذف سرمایه‌گذاری</DialogTitle>
+            <DialogDescription>
+              {deleteTarget?.name} برای همیشه حذف می‌شود. این عمل قابل بازگشت
+              نیست.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5 flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setDeleteTarget(null)}
+            >
+              انصراف
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={remove}>
+              حذف
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function InvestmentEditor({
+  open,
+  investment,
+  investmentCategories,
+  settings,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  investment?: Investment;
+  investmentCategories: InvestmentCategory[];
+  settings: AppSettings;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(todayIso());
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    setName(investment?.name ?? "");
+    setCategoryId(investment?.categoryId ?? investmentCategories[0]?.id ?? "");
+    setAmount(investment ? String(investment.amount) : "");
+    setDate(investment?.date ?? todayIso());
+    setNote(investment?.note ?? "");
+  }, [investment, open, investmentCategories]);
+
+  const save = async () => {
+    const clean = name.trim();
+    const value = Number(amount.replace(/\D/g, ""));
+    if (!clean || !value || !categoryId) return;
+    const now = new Date().toISOString();
+    if (investment)
+      await db.investments.update(investment.id, {
+        name: clean,
+        categoryId,
+        amount: value,
+        date,
+        note: note.trim(),
+        updatedAt: now,
+      });
+    else
+      await db.investments.add({
+        id: uid(),
+        name: clean,
+        categoryId,
+        amount: value,
+        date,
+        note: note.trim(),
+        createdAt: now,
+        updatedAt: now,
+      });
+    await onSaved();
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {investment ? "ویرایش سرمایه‌گذاری" : "سرمایه‌گذاری جدید"}
+          </DialogTitle>
+          <DialogDescription>
+            نام، دسته‌بندی و مبلغ سرمایه‌گذاری را وارد کنید.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="مثلاً سهام فولاد"
+          />
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              دسته‌بندی
+            </label>
+            {investmentCategories.length ? (
+              <Select
+                value={categoryId}
+                onValueChange={setCategoryId}
+                options={investmentCategories.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  icon: categoryIconMap[c.icon] || Package,
+                }))}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                ابتدا یک دسته‌بندی سرمایه‌گذاری بسازید.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              مبلغ ({settings.currency})
+            </label>
+            <Input
+              inputMode="numeric"
+              value={
+                amount
+                  ? Number(amount.replace(/\D/g, "")).toLocaleString("en-US")
+                  : ""
+              }
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="۰"
+              className="h-14 text-2xl font-bold"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">تاریخ</label>
+            <PersianDatePicker value={date} onChange={setDate} />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">یادداشت</label>
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="اختیاری"
+            />
+          </div>
+          <Button
+            className="w-full"
+            onClick={save}
+            disabled={!name.trim() || !amount.trim() || !categoryId}
+          >
+            {investment ? "ذخیره تغییرات" : "افزودن سرمایه‌گذاری"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InvestmentCategoriesScreen({
+  investmentCategories,
+  investments,
+  onRefresh,
+}: {
+  investmentCategories: InvestmentCategory[];
+  investments: Investment[];
+  onRefresh: () => void;
+}) {
+  const [editor, setEditor] = useState<{
+    category?: InvestmentCategory;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<InvestmentCategory | null>(
+    null,
+  );
+
+  const iconOptions = [
+    ["stock", "سهام", TrendingUp],
+    ["crypto", "ارز دیجیتال", Bitcoin],
+    ["gold", "طلا و سکه", Gem],
+    ["fund", "صندوق", Landmark],
+    ["realestate", "املاک", House],
+    ["other", "سایر", Package],
+  ] as const;
+
+  const remove = async () => {
+    if (!deleteTarget) return;
+    await db.investmentCategories.delete(deleteTarget.id);
+    setDeleteTarget(null);
+    await onRefresh();
+  };
+
+  return (
+    <>
+      <Header
+        title="دسته‌بندی سرمایه‌گذاری"
+        action={
+          <Button size="icon" variant="ghost" onClick={() => setEditor({})}>
+            <Plus />
+          </Button>
+        }
+      />
+      <div className="flex flex-col gap-4 px-4 pb-28">
+        <div className="flex flex-col gap-2">
+          {investmentCategories.map((c) => {
+            const count = investments.filter(
+              (i) => i.categoryId === c.id,
+            ).length;
+            return (
+              <Card key={c.id} className="flex items-center gap-3 p-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <CategoryIcon category={c} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{c.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatNumber(count, {
+                      digitStyle: "fa",
+                      separatorStyle: "persian",
+                    })}{" "}
+                    مورد
+                  </p>
+                </div>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => setEditor({ category: c })}
+                  aria-label="ویرایش"
+                >
+                  <Edit3 />
+                </Button>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => setDeleteTarget(c)}
+                  aria-label="حذف"
+                >
+                  <Trash2 />
+                </Button>
+              </Card>
+            );
+          })}
+          {!investmentCategories.length && (
+            <EmptyState onAdd={() => setEditor({})} />
+          )}
+        </div>
+      </div>
+
+      <InvestmentCategoryEditor
+        open={!!editor}
+        category={editor?.category}
+        iconOptions={iconOptions}
+        onClose={() => setEditor(null)}
+        onSaved={onRefresh}
+      />
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>حذف دسته‌بندی</DialogTitle>
+            <DialogDescription>{deleteTarget?.name} حذف شود؟</DialogDescription>
+          </DialogHeader>
+          {deleteTarget &&
+            investments.some((i) => i.categoryId === deleteTarget.id) && (
+              <div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+                این دسته‌بندی سرمایه‌گذاری دارد. با حذف آن، آن سرمایه‌گذاری‌ها
+                بدون دسته‌بندی معتبر باقی می‌مانند.
+              </div>
+            )}
+          <div className="mt-5 flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setDeleteTarget(null)}
+            >
+              انصراف
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={remove}>
+              حذف
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function InvestmentCategoryEditor({
+  open,
+  category,
+  iconOptions,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  category?: InvestmentCategory;
+  iconOptions: readonly (readonly [string, string, LucideIcon])[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [icon, setIcon] = useState("other");
+  const [color, setColor] = useState("");
+
+  useEffect(() => {
+    setName(category?.name ?? "");
+    setIcon(category?.icon || "other");
+    setColor(category?.color || "");
+  }, [category, open]);
+
+  const save = async () => {
+    const clean = name.trim();
+    if (!clean) return;
+    if (category)
+      await db.investmentCategories.update(category.id, {
+        name: clean,
+        icon,
+        color,
+      });
+    else
+      await db.investmentCategories.add({
+        id: uid(),
+        name: clean,
+        icon,
+        color,
+        createdAt: new Date().toISOString(),
+      });
+    await onSaved();
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {category ? "ویرایش دسته‌بندی" : "دسته‌بندی سرمایه‌گذاری جدید"}
+          </DialogTitle>
+          <DialogDescription>
+            نام و آیکون دسته‌بندی را انتخاب کنید.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="مثلاً صندوق طلا"
+          />
+          <div>
+            <p className="mb-2 text-sm font-medium">آیکون</p>
+            <div className="grid grid-cols-5 gap-2">
+              {iconOptions.map(([key, label, Icon]) => (
+                <button
+                  type="button"
+                  key={key}
+                  title={label}
+                  aria-label={label}
+                  onClick={() => setIcon(key)}
+                  className={cn(
+                    "flex aspect-square items-center justify-center rounded-xl border transition-colors hover:bg-muted",
+                    icon === key &&
+                      "border-primary bg-primary/10 text-primary ring-2 ring-primary/20",
+                  )}
+                >
+                  <Icon className="size-5" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium">رنگ اختیاری</p>
+            <div className="flex gap-2">
+              {[
+                "#33a77b",
+                "#7b78ed",
+                "#f3ae53",
+                "#e77a8b",
+                "#56a6c8",
+                "#9b83cf",
+              ].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  aria-label="انتخاب رنگ"
+                  className={cn(
+                    "size-7 rounded-full border-2",
+                    color === c && "ring-2 ring-ring ring-offset-2",
+                  )}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
           <Button className="w-full" onClick={save} disabled={!name.trim()}>
             {category ? "ذخیره تغییرات" : "افزودن دسته‌بندی"}
           </Button>
