@@ -152,7 +152,7 @@ class FinanceDB extends Dexie {
           await tx.table("investments").update(inv.id, { categoryId: matchId })
         }
       })
-        this.version(4)
+           this.version(4)
       .stores({
         transactions: "id, type, date, categoryId, createdAt",
         categories: "id, type",
@@ -166,8 +166,6 @@ class FinanceDB extends Dexie {
           if (!row.kind) await tx.table("investments").update(row.id, { kind: "buy" })
         }
       })
-  }
-}
   }
 }
 
