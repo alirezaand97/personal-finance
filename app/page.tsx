@@ -1996,25 +1996,25 @@ function InvestmentsScreen({
       .sort((a, b) => b.value - a.value);
   }, [investments, catMap]);
 
-  const monthlyPoints = useMemo(
-    () =>
-      monthSequence(6).map((m) => {
-        const rows = investments.filter((i) => {
-          const p = persianMonthParts(i.date);
-          return p.year === m.year && p.month === m.month;
-        });
-        return {
-          label: m.label,
-          buy: rows
-            .filter((i) => i.kind === "buy")
-            .reduce((s, i) => s + i.amount, 0),
-          sell: rows
-            .filter((i) => i.kind === "sell")
-            .reduce((s, i) => s + i.amount, 0),
-        };
-      }),
-    [investments],
-  );
+const monthlyPoints = useMemo(
+  () =>
+    monthSequence(12).map((m) => {
+      const rows = investments.filter((i) => {
+        const p = persianMonthParts(i.date);
+        return p.year === m.year && p.month === m.month;
+      });
+      return {
+        label: m.label,
+        buy: rows
+          .filter((i) => i.kind === "buy")
+          .reduce((s, i) => s + i.amount, 0),
+        sell: rows
+          .filter((i) => i.kind === "sell")
+          .reduce((s, i) => s + i.amount, 0),
+      };
+    }),
+  [investments],
+);
   
   const sorted = useMemo(
     () => [...investments].sort((a, b) => b.date.localeCompare(a.date)),
@@ -2064,7 +2064,7 @@ function InvestmentsScreen({
                 {investments.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">روند ۶ ماه اخیر</CardTitle>
+              <CardTitle className="text-base">روند یک سال اخیر</CardTitle>
               <CardDescription>خرید و فروش سرمایه‌گذاری به تفکیک ماه</CardDescription>
             </CardHeader>
             <CardContent>
