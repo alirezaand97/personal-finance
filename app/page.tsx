@@ -372,20 +372,23 @@ function Dashboard({
     [transactions, year, month],
   );
 
-  const income = visible
+   const income = visible
     .filter((t) => t.type === "income")
     .reduce((s, t) => s + t.amount, 0);
   const expense = visible
     .filter((t) => t.type === "expense")
     .reduce((s, t) => s + t.amount, 0);
-  const balance = transactions.reduce(
-    (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
-    0,
-  );
-    const totalInvested = useMemo(
+  const totalInvested = useMemo(
     () => investments.reduce((s, i) => s + i.amount, 0),
     [investments],
   );
+  const balance =
+    transactions.reduce(
+      (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
+      0,
+    ) - totalInvested;
+  
+  
   const catMap = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
     [categories],
