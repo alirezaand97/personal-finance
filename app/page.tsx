@@ -413,6 +413,7 @@ function Dashboard({
   transactions,
   categories,
   investments,
+  investmentTransactions,
   settings,
   onAdd,
   onNavigate,
