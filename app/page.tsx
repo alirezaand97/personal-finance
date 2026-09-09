@@ -2259,9 +2259,7 @@ const monthlyPoints = useMemo(
           isSell ? "text-rose-600" : "text-primary",
                         )}
                       >
-                        {formatMoney(inv.amount, settings)}
-                        {isSell ? "−" : "+"}
-                      
+                        {formatMoney(inv.amount, settings)}                      
                       </p>
                       <Button
                         size="icon-sm"
