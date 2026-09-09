@@ -92,6 +92,7 @@ import {
   importBackup,
   Investment,
   InvestmentCategory,
+  InvestmentKind,
   jalaliLabel,
   monthNames,
   seedDatabase,
@@ -180,6 +181,10 @@ function persianDayOfMonth(date: string | Date) {
     day: "numeric",
   }).formatToParts(new Date(date));
   return Number(parts.find((p) => p.type === "day")?.value);
+}
+
+function signedInvestmentAmount(inv: Investment) {
+  return inv.kind === "sell" ? -inv.amount : inv.amount;
 }
 
 type Screen =
@@ -379,7 +384,7 @@ function Dashboard({
     .filter((t) => t.type === "expense")
     .reduce((s, t) => s + t.amount, 0);
   const totalInvested = useMemo(
-    () => investments.reduce((s, i) => s + i.amount, 0),
+    () => investments.reduce((s, i) => s + signedInvestmentAmount(i), 0),
     [investments],
   );
   const balance =
@@ -1965,14 +1970,21 @@ function InvestmentsScreen({
     [investmentCategories],
   );
 
-  const total = investments.reduce((s, i) => s + i.amount, 0);
+  const total = investments.reduce(
+    (s, i) => s + signedInvestmentAmount(i),
+    0,
+  );
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     investments.forEach((i) =>
-      map.set(i.categoryId, (map.get(i.categoryId) ?? 0) + i.amount),
+      map.set(
+        i.categoryId,
+        (map.get(i.categoryId) ?? 0) + signedInvestmentAmount(i),
+      ),
     );
     return [...map.entries()]
+      .filter(([, value]) => value > 0)
       .map(([categoryId, value], idx) => ({
         categoryId,
         label: catMap.get(categoryId)?.name ?? "سایر",
@@ -1984,6 +1996,26 @@ function InvestmentsScreen({
       .sort((a, b) => b.value - a.value);
   }, [investments, catMap]);
 
+  const monthlyPoints = useMemo(
+    () =>
+      monthSequence(6).map((m) => {
+        const rows = investments.filter((i) => {
+          const p = persianMonthParts(i.date);
+          return p.year === m.year && p.month === m.month;
+        });
+        return {
+          label: m.label,
+          buy: rows
+            .filter((i) => i.kind === "buy")
+            .reduce((s, i) => s + i.amount, 0),
+          sell: rows
+            .filter((i) => i.kind === "sell")
+            .reduce((s, i) => s + i.amount, 0),
+        };
+      }),
+    [investments],
+  );
+  
   const sorted = useMemo(
     () => [...investments].sort((a, b) => b.date.localeCompare(a.date)),
     [investments],
@@ -2028,6 +2060,81 @@ function InvestmentsScreen({
             </p>
           </div>
         </Card>
+
+                {investments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">روند ۶ ماه اخیر</CardTitle>
+              <CardDescription>خرید و فروش سرمایه‌گذاری به تفکیک ماه</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-56">
+                <ResponsiveContainer>
+                  <BarChart
+                    data={monthlyPoints}
+                    barGap={5}
+                    margin={{ top: 8, right: 4, left: 4, bottom: 0 }}
+                  >
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.18} />
+                    <XAxis
+                      dataKey="label"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                      tickMargin={8}
+                    />
+                    <YAxis hide />
+                    <Tooltip
+                      cursor={{ fill: "var(--muted)", opacity: 0.25 }}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="min-w-[150px] rounded-2xl border border-border/50 bg-background/95 p-3 shadow-xl backdrop-blur-md">
+                            <p className="mb-2 text-[11px] font-medium text-muted-foreground">
+                              {label}
+                            </p>
+                            <div className="space-y-2">
+                              {payload.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between gap-4">
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className="size-2 rounded-full"
+                                      style={{ backgroundColor: item.color }}
+                                    />
+                                    <span className="text-xs text-muted-foreground">
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs font-bold">
+                                    {formatMoney(Number(item.value), settings)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar
+                      dataKey="buy"
+                      fill="var(--primary)"
+                      radius={[6, 6, 2, 2]}
+                      name="خرید"
+                      maxBarSize={22}
+                    />
+                    <Bar
+                      dataKey="sell"
+                      fill="#e77a8b"
+                      radius={[6, 6, 2, 2]}
+                      name="فروش"
+                      maxBarSize={22}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {investments.length === 0 ? (
           <Card className="flex flex-col items-center border-dashed px-6 py-12 text-center shadow-none">
@@ -2122,11 +2229,19 @@ function InvestmentsScreen({
             <section>
               <h2 className="mb-3 font-bold">لیست سرمایه‌گذاری‌ها</h2>
               <div className="flex flex-col gap-2">
-                {sorted.map((inv) => {
+                                {sorted.map((inv) => {
                   const cat = catMap.get(inv.categoryId);
+                  const isSell = inv.kind === "sell";
                   return (
                     <Card key={inv.id} className="flex items-center gap-3 p-3">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <span
+                        className={cn(
+                          "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                          isSell
+                            ? "bg-primary/10 text-primary"
+                            : "bg-rose-500/10 text-rose-600",
+                        )}
+                      >
                         <CategoryIcon category={cat} className="size-5" />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -2134,10 +2249,17 @@ function InvestmentsScreen({
                           {inv.name}
                         </p>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {cat?.name ?? "سایر"} · {jalaliLabel(inv.date)}
+                          {cat?.name ?? "سایر"} · {isSell ? "فروش" : "خرید"} ·{" "}
+                          {jalaliLabel(inv.date)}
                         </p>
                       </div>
-                      <p className="shrink-0 text-sm font-bold">
+                      <p
+                        className={cn(
+                          "shrink-0 text-sm font-bold",
+                          isSell ? "text-primary" : "text-rose-600",
+                        )}
+                      >
+                        {isSell ? "−" : "+"}
                         {formatMoney(inv.amount, settings)}
                       </p>
                       <Button
@@ -2165,10 +2287,11 @@ function InvestmentsScreen({
         )}
       </div>
 
-      <InvestmentEditor
+          <InvestmentEditor
         open={!!editor}
         investment={editor?.investment}
         investmentCategories={investmentCategories}
+        investments={investments}
         settings={settings}
         onClose={() => setEditor(null)}
         onSaved={onRefresh}
@@ -2208,6 +2331,7 @@ function InvestmentEditor({
   open,
   investment,
   investmentCategories,
+  investments,
   settings,
   onClose,
   onSaved,
@@ -2215,33 +2339,53 @@ function InvestmentEditor({
   open: boolean;
   investment?: Investment;
   investmentCategories: InvestmentCategory[];
+  investments: Investment[];
   settings: AppSettings;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [kind, setKind] = useState<InvestmentKind>("buy");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayIso());
   const [note, setNote] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setName(investment?.name ?? "");
     setCategoryId(investment?.categoryId ?? investmentCategories[0]?.id ?? "");
+    setKind(investment?.kind ?? "buy");
     setAmount(investment ? String(investment.amount) : "");
     setDate(investment?.date ?? todayIso());
     setNote(investment?.note ?? "");
+    setError("");
   }, [investment, open, investmentCategories]);
+
+  const availableInCategory = useMemo(() => {
+    if (!categoryId) return 0;
+    return investments
+      .filter((i) => i.categoryId === categoryId && i.id !== investment?.id)
+      .reduce((s, i) => s + signedInvestmentAmount(i), 0);
+  }, [investments, categoryId, investment]);
 
   const save = async () => {
     const clean = name.trim();
     const value = Number(amount.replace(/\D/g, ""));
-    if (!clean || !value || !categoryId) return;
+    if (!clean || !value || !categoryId) {
+      setError("لطفاً نام، دسته‌بندی و مبلغ را کامل کنید.");
+      return;
+    }
+    if (kind === "sell" && value > availableInCategory) {
+      setError("مبلغ فروش نمی‌تواند بیشتر از سرمایه‌گذاری موجود در این دسته باشد.");
+      return;
+    }
     const now = new Date().toISOString();
     if (investment)
       await db.investments.update(investment.id, {
         name: clean,
         categoryId,
+        kind,
         amount: value,
         date,
         note: note.trim(),
@@ -2252,6 +2396,7 @@ function InvestmentEditor({
         id: uid(),
         name: clean,
         categoryId,
+        kind,
         amount: value,
         date,
         note: note.trim(),
@@ -2274,6 +2419,30 @@ function InvestmentEditor({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+                    <div className="flex w-full rounded-xl bg-muted/60 p-1">
+            {(
+              [
+                ["buy", "خرید"],
+                ["sell", "فروش"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setKind(id)}
+                className={cn(
+                  "relative flex h-9 flex-1 items-center justify-center rounded-lg",
+                  "text-sm! font-medium! transition-all duration-200",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                  id === kind
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <Input
             autoFocus
             value={name}
@@ -2328,6 +2497,16 @@ function InvestmentEditor({
               placeholder="اختیاری"
             />
           </div>
+                    {kind === "sell" && categoryId && (
+            <p className="text-xs text-muted-foreground">
+              موجودی این دسته: {formatMoney(availableInCategory, settings)}
+            </p>
+          )}
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <Button
             className="w-full"
             onClick={save}
