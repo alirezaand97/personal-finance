@@ -195,9 +195,7 @@ export default function Page() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
-  const [investmentCategories, setInvestmentCategories] = useState
-    InvestmentCategory[]
-  >([]);
+   const [investmentCategories, setInvestmentCategories] = useState<InvestmentCategory[]>([]);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
