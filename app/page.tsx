@@ -92,7 +92,8 @@ import {
   importBackup,
   Investment,
   InvestmentCategory,
-  InvestmentKind,
+  InvestmentTransaction,
+  InvestmentTransactionKind,
   jalaliLabel,
   monthNames,
   seedDatabase,
@@ -183,9 +184,69 @@ function persianDayOfMonth(date: string | Date) {
   return Number(parts.find((p) => p.type === "day")?.value);
 }
 
-function signedInvestmentAmount(inv: Investment) {
-  return inv.kind === "sell" ? -inv.amount : inv.amount;
+function getInvestmentMetrics(
+  investment: Investment,
+  transactions: InvestmentTransaction[],
+) {
+  const rows = transactions.filter((t) => t.investmentId === investment.id)
+  const buyQty = rows.filter(t => t.kind === "buy").reduce((s, t) => s + t.quantity, 0)
+  const sellQty = rows.filter(t => t.kind === "sell").reduce((s, t) => s + t.quantity, 0)
+  const quantity = Math.max(0, buyQty - sellQty)
+
+  const buyAmount = rows.filter(t => t.kind === "buy").reduce((s, t) => s + t.amount, 0)
+  const sellAmount = rows.filter(t => t.kind === "sell").reduce((s, t) => s + t.amount, 0)
+  const fees = rows.filter(t => t.kind === "fee").reduce((s, t) => s + t.amount, 0)
+  const dividends = rows.filter(t => t.kind === "dividend").reduce((s, t) => s + t.amount, 0)
+
+  const netInvested = buyAmount - sellAmount + fees
+  const currentValue = quantity * investment.currentPrice
+  const profit = currentValue - netInvested + dividends
+  const profitPercent = netInvested > 0 ? (profit / netInvested) * 100 : 0
+
+  return {
+    rows,
+    quantity,
+    buyAmount,
+    sellAmount,
+    fees,
+    dividends,
+    netInvested,
+    currentValue,
+    profit,
+    profitPercent,
+  }
 }
+
+function investmentCashFlow(transactions: InvestmentTransaction[]) {
+  return transactions.reduce((sum, t) => {
+    if (t.kind === "buy" || t.kind === "fee") return sum + t.amount
+    if (t.kind === "sell" || t.kind === "dividend") return sum - t.amount
+    return sum
+  }, 0)
+}
+
+function investmentUnitLabel(unit: Investment["unit"]) {
+  return {
+    piece: "عدد",
+    gram: "گرم",
+    share: "سهم",
+    unit: "واحد",
+  }[unit]
+}
+
+function formatQuantity(value: number) {
+  return value.toLocaleString("en-US", { maximumFractionDigits: 6 })
+}
+
+function transactionKindLabel(kind: InvestmentTransactionKind) {
+  return {
+    buy: "خرید",
+    sell: "فروش",
+    dividend: "سود نقدی",
+    fee: "کارمزد",
+  }[kind]
+}
+
 
 type Screen =
   | "home"
@@ -201,6 +262,7 @@ export default function Page() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
+  const [investmentTransactions, setInvestmentTransactions] = useState<InvestmentTransaction[]>([]);
    const [investmentCategories, setInvestmentCategories] = useState<InvestmentCategory[]>([]);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [showAdd, setShowAdd] = useState(false);
@@ -212,6 +274,7 @@ const refresh = async () => {
     setTransactions(data.transactions);
     setCategories(data.categories);
     setInvestments(data.investments);
+    setInvestmentTransactions(data.investmentTransactions);
     setInvestmentCategories(data.investmentCategories);
     setSettings(data.settings ?? defaultSettings);
     setReady(true);
@@ -258,6 +321,7 @@ const refresh = async () => {
         transactions={transactions}
         categories={categories}
         investments={investments}
+        investmentTransactions={investmentTransactions}
         settings={settings}
         onAdd={openAdd}
         onNavigate={setScreen}
@@ -286,6 +350,7 @@ const refresh = async () => {
     ) : screen === "investments" ? (
       <InvestmentsScreen
         investments={investments}
+        investmentTransactions={investmentTransactions}
         investmentCategories={investmentCategories}
         settings={settings}
         onRefresh={refresh}
@@ -355,6 +420,7 @@ function Dashboard({
   transactions: Transaction[];
   categories: Category[];
   investments: Investment[];
+  investmentTransactions: InvestmentTransaction[];
   settings: AppSettings;
   onAdd: () => void;
   onNavigate: (v: any) => void;
@@ -383,15 +449,21 @@ function Dashboard({
   const expense = visible
     .filter((t) => t.type === "expense")
     .reduce((s, t) => s + t.amount, 0);
-  const totalInvested = useMemo(
-    () => investments.reduce((s, i) => s + signedInvestmentAmount(i), 0),
-    [investments],
+  const totalPortfolioValue = useMemo(
+    () =>
+      investments.reduce(
+        (sum, investment) =>
+          sum + getInvestmentMetrics(investment, investmentTransactions).currentValue,
+        0,
+      ),
+    [investments, investmentTransactions],
   );
+
   const balance =
     transactions.reduce(
       (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
       0,
-    ) - totalInvested;
+    ) - investmentCashFlow(investmentTransactions);
   
   
   const catMap = useMemo(
@@ -512,7 +584,7 @@ function Dashboard({
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">سرمایه‌گذاری‌ها</p>
             <p className="mt-0.5 text-sm font-bold">
-              {formatMoney(totalInvested, settings)}
+              {formatMoney(totalPortfolioValue, settings)}
             </p>
           </div>
           <ChevronLeft className="shrink-0 text-muted-foreground" />
@@ -1949,42 +2021,63 @@ function CategoryEditor({
 
 function InvestmentsScreen({
   investments,
+  investmentTransactions,
   investmentCategories,
   settings,
   onRefresh,
   onNavigate,
 }: {
-  investments: Investment[];
-  investmentCategories: InvestmentCategory[];
-  settings: AppSettings;
-  onRefresh: () => void;
-  onNavigate: (v: any) => void;
+  investments: Investment[]
+  investmentTransactions: InvestmentTransaction[]
+  investmentCategories: InvestmentCategory[]
+  settings: AppSettings
+  onRefresh: () => void
+  onNavigate: (v: any) => void
 }) {
-  const [editor, setEditor] = useState<{ investment?: Investment } | null>(
-    null,
-  );
-  const [deleteTarget, setDeleteTarget] = useState<Investment | null>(null);
+  const [assetEditor, setAssetEditor] = useState<{ investment?: Investment } | null>(null)
+  const [transactionEditor, setTransactionEditor] = useState<{
+    investment: Investment
+    transaction?: InvestmentTransaction
+    defaultKind?: InvestmentTransactionKind
+  } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Investment | null>(null)
+  const [deleteTransactionTarget, setDeleteTransactionTarget] =
+    useState<InvestmentTransaction | null>(null)
 
   const catMap = useMemo(
     () => new Map(investmentCategories.map((c) => [c.id, c])),
     [investmentCategories],
-  );
+  )
 
-  const total = investments.reduce(
-    (s, i) => s + signedInvestmentAmount(i),
+  const metrics = useMemo(
+    () =>
+      investments.map((investment) => ({
+        investment,
+        ...getInvestmentMetrics(investment, investmentTransactions),
+      })),
+    [investments, investmentTransactions],
+  )
+
+  const totalValue = metrics.reduce((s, x) => s + x.currentValue, 0)
+  const totalInvested = metrics.reduce((s, x) => s + x.netInvested, 0)
+  const totalProfit = metrics.reduce(
+    (s, x) => s + x.profit,
     0,
-  );
+  )
+  const totalProfitPercent =
+    totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0
 
   const byCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    investments.forEach((i) =>
+    const map = new Map<string, number>()
+    metrics.forEach(({ investment, currentValue }) => {
+      if (currentValue <= 0) return
       map.set(
-        i.categoryId,
-        (map.get(i.categoryId) ?? 0) + signedInvestmentAmount(i),
-      ),
-    );
+        investment.categoryId,
+        (map.get(investment.categoryId) ?? 0) + currentValue,
+      )
+    })
+
     return [...map.entries()]
-      .filter(([, value]) => value > 0)
       .map(([categoryId, value], idx) => ({
         categoryId,
         label: catMap.get(categoryId)?.name ?? "سایر",
@@ -1993,40 +2086,40 @@ function InvestmentsScreen({
           catMap.get(categoryId)?.color ||
           chartColors[idx % chartColors.length],
       }))
-      .sort((a, b) => b.value - a.value);
-  }, [investments, catMap]);
+      .sort((a, b) => b.value - a.value)
+  }, [metrics, catMap])
 
-const monthlyPoints = useMemo(
-  () =>
-    monthSequence(12).map((m) => {
-      const rows = investments.filter((i) => {
-        const p = persianMonthParts(i.date);
-        return p.year === m.year && p.month === m.month;
-      });
-      return {
-        label: m.label,
-        buy: rows
-          .filter((i) => i.kind === "buy")
-          .reduce((s, i) => s + i.amount, 0),
-        sell: rows
-          .filter((i) => i.kind === "sell")
-          .reduce((s, i) => s + i.amount, 0),
-      };
-    }),
-  [investments],
-);
-  
-  const sorted = useMemo(
-    () => [...investments].sort((a, b) => b.date.localeCompare(a.date)),
-    [investments],
-  );
+  const recentTransactions = useMemo(
+    () => [...investmentTransactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8),
+    [investmentTransactions],
+  )
 
-  const remove = async () => {
-    if (!deleteTarget) return;
-    await db.investments.delete(deleteTarget.id);
-    setDeleteTarget(null);
-    await onRefresh();
-  };
+  const removeAsset = async () => {
+    if (!deleteTarget) return
+
+    await db.transaction(
+      "rw",
+      db.investments,
+      db.investmentTransactions,
+      async () => {
+        await db.investmentTransactions
+          .where("investmentId")
+          .equals(deleteTarget.id)
+          .delete()
+        await db.investments.delete(deleteTarget.id)
+      },
+    )
+
+    setDeleteTarget(null)
+    await onRefresh()
+  }
+
+  const removeTransaction = async () => {
+    if (!deleteTransactionTarget) return
+    await db.investmentTransactions.delete(deleteTransactionTarget.id)
+    setDeleteTransactionTarget(null)
+    await onRefresh()
+  }
 
   return (
     <>
@@ -2042,259 +2135,331 @@ const monthlyPoints = useMemo(
             >
               <Tags />
             </Button>
-            <Button size="icon" variant="ghost" onClick={() => setEditor({})}>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setAssetEditor({})}
+              aria-label="دارایی جدید"
+            >
               <Plus />
             </Button>
           </div>
         }
       />
+
       <div className="flex flex-col gap-4 px-4 pb-28">
         <Card className="relative overflow-hidden border-0 bg-primary p-5 text-primary-foreground shadow-[0_20px_50px_-20px] shadow-primary/60">
           <div className="pointer-events-none absolute -right-16 -top-20 size-52 rounded-full bg-white/10 blur-3xl" />
           <div className="relative">
-            <p className="text-sm text-primary-foreground/70">
-              مجموع سرمایه‌گذاری
-            </p>
+            <p className="text-sm text-primary-foreground/70">ارزش فعلی سبد</p>
             <p className="mt-2 text-2xl font-semibold tracking-tight">
-              {formatMoney(total, settings)}
+              {formatMoney(totalValue, settings)}
             </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-white/10 p-3">
+                <p className="text-xs text-primary-foreground/70">سود / زیان</p>
+                <p className={cn(
+                  "mt-1 text-sm font-bold",
+                  totalProfit < 0 && "text-red-200",
+                )}>
+                  {totalProfit >= 0 ? "+" : ""}
+                  {formatMoney(totalProfit, settings)}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/10 p-3">
+                <p className="text-xs text-primary-foreground/70">بازدهی</p>
+                <p className="mt-1 text-sm font-bold">
+                  {totalProfitPercent >= 0 ? "+" : ""}
+                  {totalProfitPercent.toFixed(1)}٪
+                </p>
+              </div>
+            </div>
           </div>
         </Card>
 
-                {investments.length > 0 && (
+        {investments.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">روند یک سال اخیر</CardTitle>
-              <CardDescription>خرید و فروش سرمایه‌گذاری به تفکیک ماه</CardDescription>
+              <CardTitle className="text-base">ترکیب سبد</CardTitle>
+              <CardDescription>ارزش روز دارایی‌ها بر اساس دسته‌بندی</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-56">
+            <CardContent className="flex items-center gap-3">
+              <div className="h-36 w-36 shrink-0">
                 <ResponsiveContainer>
-                  <BarChart
-                    data={monthlyPoints}
-                    barGap={5}
-                    margin={{ top: 8, right: 4, left: 4, bottom: 0 }}
-                  >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.18} />
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={11}
-                      tickMargin={8}
-                    />
-                    <YAxis hide />
+                  <PieChart>
+                    <Pie
+                      data={byCategory}
+                      innerRadius={42}
+                      outerRadius={62}
+                      dataKey="value"
+                      strokeWidth={3}
+                    >
+                      {byCategory.map((e, i) => (
+                        <Cell key={i} fill={e.fill} />
+                      ))}
+                    </Pie>
                     <Tooltip
-                      cursor={{ fill: "var(--muted)", opacity: 0.25 }}
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
+                      cursor={false}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null
+                        const item = payload[0]
                         return (
-                          <div className="min-w-[150px] rounded-2xl border border-border/50 bg-background/95 p-3 shadow-xl backdrop-blur-md">
-                            <p className="mb-2 text-[11px] font-medium text-muted-foreground">
-                              {label}
+                          <div className="rounded-sm border border-border/50 bg-background/95 px-3 py-2 shadow-lg backdrop-blur-md">
+                            <span className="text-xs text-muted-foreground">
+                              {item.name}
+                            </span>
+                            <p className="mt-1 text-sm font-bold">
+                              {formatMoney(Number(item.value), settings)}
                             </p>
-                            <div className="space-y-2">
-                              {payload.map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between gap-4">
-                                  <div className="flex items-center gap-1.5">
-                                    <span
-                                      className="size-2 rounded-full"
-                                      style={{ backgroundColor: item.color }}
-                                    />
-                                    <span className="text-xs text-muted-foreground">
-                                      {item.name}
-                                    </span>
-                                  </div>
-                                  <span className="text-xs font-bold">
-                                    {formatMoney(Number(item.value), settings)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
                           </div>
-                        );
+                        )
                       }}
                     />
-                    <Bar
-                      dataKey="buy"
-                      fill="var(--primary)"
-                      radius={[6, 6, 2, 2]}
-                      name="خرید"
-                      maxBarSize={22}
-                    />
-                    <Bar
-                      dataKey="sell"
-                      fill="#e77a8b"
-                      radius={[6, 6, 2, 2]}
-                      name="فروش"
-                      maxBarSize={22}
-                    />
-                  </BarChart>
+                  </PieChart>
                 </ResponsiveContainer>
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                {byCategory.map((p) => (
+                  <div key={p.categoryId} className="flex items-center gap-2 text-sm">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ background: p.fill }}
+                    />
+                    <span className="truncate text-muted-foreground">{p.label}</span>
+                    <span className="ms-auto text-xs font-medium">
+                      {totalValue ? Math.round((p.value / totalValue) * 100) : 0}٪
+                    </span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {investments.length === 0 ? (
-          <Card className="flex flex-col items-center border-dashed px-6 py-12 text-center shadow-none">
-            <div className="mb-4 rounded-2xl bg-primary/10 p-4 text-primary">
-              <TrendingUp />
-            </div>
-            <h2 className="font-bold">هنوز سرمایه‌گذاری ثبت نشده</h2>
-            <p className="mt-2 max-w-[250px] text-sm leading-6 text-muted-foreground">
-              دارایی‌های خود را اضافه کنید تا ترکیب سبد سرمایه‌گذاری‌تان را
-              ببینید.
-            </p>
-            <Button className="mt-5 rounded-xl" onClick={() => setEditor({})}>
-              <Plus data-icon="inline-start" /> افزودن سرمایه‌گذاری
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-bold">دارایی‌های من</h2>
+            <Button
+              variant="link"
+              className="border-0 text-xs"
+              onClick={() => setAssetEditor({})}
+            >
+              افزودن دارایی
             </Button>
-          </Card>
-        ) : (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  ترکیب سبد سرمایه‌گذاری
-                </CardTitle>
-                <CardDescription>
-                  سهم هر دسته از کل سرمایه‌گذاری
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-center gap-3">
-                <div className="h-36 w-36 shrink-0">
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        data={byCategory}
-                        innerRadius={42}
-                        outerRadius={62}
-                        dataKey="value"
-                        strokeWidth={3}
-                      >
-                        {byCategory.map((e, i) => (
-                          <Cell key={i} fill={e.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        cursor={false}
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const item = payload[0];
-                          return (
-                            <div className="rounded-sm border border-border/50 bg-background/95 px-3 py-2 shadow-lg backdrop-blur-md">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className="size-2 rounded-full"
-                                  style={{
-                                    backgroundColor: item.payload.fill,
-                                  }}
-                                />
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  {item.name}
-                                </span>
-                              </div>
-                              <p className="mt-1 text-sm font-bold tracking-tight">
-                                {formatMoney(Number(item.value), settings)}
-                              </p>
-                            </div>
-                          );
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  {byCategory.map((p) => (
-                    <div
-                      key={p.categoryId}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <span
-                        className="size-2 shrink-0 rounded-full"
-                        style={{ background: p.fill }}
-                      />
-                      <span className="truncate text-muted-foreground">
-                        {p.label}
-                      </span>
-                      <span className="ms-auto text-xs font-medium">
-                        {total ? Math.round((p.value / total) * 100) : 0}٪
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          </div>
 
-            <section>
-              <h2 className="mb-3 font-bold">لیست سرمایه‌گذاری‌ها</h2>
-              <div className="flex flex-col gap-2">
-                                {sorted.map((inv) => {
-                  const cat = catMap.get(inv.categoryId);
-                  const isSell = inv.kind === "sell";
-                  return (
-                    <Card key={inv.id} className="flex items-center gap-3 p-3">
-                      <span
-                        className={cn(
-                          "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                              isSell
-            ? "bg-rose-500/10 text-rose-600"
-            : "bg-primary/10 text-primary",
-                        )}
-                      >
+          {metrics.length === 0 ? (
+            <Card className="flex flex-col items-center border-dashed px-6 py-12 text-center shadow-none">
+              <div className="mb-4 rounded-2xl bg-primary/10 p-4 text-primary">
+                <TrendingUp />
+              </div>
+              <h2 className="font-bold">هنوز دارایی‌ای ثبت نشده</h2>
+              <p className="mt-2 max-w-[260px] text-sm leading-6 text-muted-foreground">
+                ابتدا دارایی‌هایی مثل طلا، سهام یا ارز دیجیتال را اضافه کنید و
+                بعد خرید و فروش آن‌ها را ثبت کنید.
+              </p>
+              <Button className="mt-5 rounded-xl" onClick={() => setAssetEditor({})}>
+                <Plus data-icon="inline-start" />
+                افزودن اولین دارایی
+              </Button>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {metrics.map((item) => {
+                const { investment, quantity, currentValue, profit, profitPercent } = item
+                const cat = catMap.get(investment.categoryId)
+
+                return (
+                  <Card key={investment.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                         <CategoryIcon category={cat} className="size-5" />
                       </span>
+
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
-                          {inv.name}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {cat?.name ?? "سایر"} · {isSell ? "فروش" : "خرید"} ·{" "}
-                          {jalaliLabel(inv.date)}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{investment.name}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {cat?.name ?? "سایر"} · {investmentUnitLabel(investment.unit)}
+                            </p>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-bold">
+                              {formatMoney(currentValue, settings)}
+                            </p>
+                            <p className={cn(
+                              "mt-0.5 text-xs font-medium",
+                              profit >= 0 ? "text-primary" : "text-rose-600",
+                            )}>
+                              {profit >= 0 ? "+" : ""}
+                              {formatMoney(profit, settings)} ({profitPercent.toFixed(1)}٪)
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2 text-xs">
+                          <span className="text-muted-foreground">موجودی</span>
+                          <span className="font-semibold">
+                            {formatQuantity(quantity)} {investmentUnitLabel(investment.unit)}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={() =>
+                              setTransactionEditor({
+                                investment,
+                                defaultKind: "buy",
+                              })
+                            }
+                          >
+                            خرید
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            disabled={quantity <= 0}
+                            onClick={() =>
+                              setTransactionEditor({
+                                investment,
+                                defaultKind: "sell",
+                              })
+                            }
+                          >
+                            فروش
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => setAssetEditor({ investment })}
+                            aria-label="ویرایش دارایی"
+                          >
+                            <Edit3 />
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => setDeleteTarget(investment)}
+                            aria-label="حذف دارایی"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </div>
                       </div>
-                      <p
-                        className={cn(
-                          "shrink-0 text-sm font-bold",
-          isSell ? "text-rose-600" : "text-primary",
-                        )}
-                      >
-                        {formatMoney(inv.amount, settings)}                      
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {recentTransactions.length > 0 && (
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold">آخرین فعالیت‌ها</h2>
+              <span className="text-xs text-muted-foreground">
+                {investmentTransactions.length} تراکنش
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {recentTransactions.map((transaction) => {
+                const investment = investments.find(i => i.id === transaction.investmentId)
+                if (!investment) return null
+
+                const isPositive =
+                  transaction.kind === "sell" || transaction.kind === "dividend"
+
+                return (
+                  <Card key={transaction.id} className="flex items-center gap-3 p-3">
+                    <div className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                      isPositive
+                        ? "bg-primary/10 text-primary"
+                        : "bg-rose-500/10 text-rose-600",
+                    )}>
+                      {transaction.kind === "buy" ? (
+                        <ArrowDownLeft className="size-5" />
+                      ) : transaction.kind === "sell" ? (
+                        <ArrowUpLeft className="size-5" />
+                      ) : (
+                        <TrendingUp className="size-5" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{investment.name}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {transactionKindLabel(transaction.kind)} · {dayWord(transaction.date)}
                       </p>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        onClick={() => setEditor({ investment: inv })}
-                        aria-label="ویرایش"
-                      >
-                        <Edit3 />
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        onClick={() => setDeleteTarget(inv)}
-                        aria-label="حذف"
-                      >
-                        <Trash2 />
-                      </Button>
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
-          </>
+                    </div>
+
+                    <div className="text-left">
+                      <p className={cn(
+                        "text-sm font-bold",
+                        isPositive ? "text-primary" : "text-rose-600",
+                      )}>
+                        {isPositive ? "+" : "-"}{formatMoney(transaction.amount, settings)}
+                      </p>
+                      {(transaction.kind === "buy" || transaction.kind === "sell") && (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {formatQuantity(transaction.quantity)} {investmentUnitLabel(investment.unit)}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => setTransactionEditor({ investment, transaction })}
+                      aria-label="ویرایش تراکنش"
+                    >
+                      <Edit3 />
+                    </Button>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => setDeleteTransactionTarget(transaction)}
+                      aria-label="حذف تراکنش"
+                    >
+                      <Trash2 />
+                    </Button>
+                  </Card>
+                )
+              })}
+            </div>
+          </section>
         )}
       </div>
 
-          <InvestmentEditor
-        open={!!editor}
-        investment={editor?.investment}
+      <InvestmentAssetEditor
+        open={!!assetEditor}
+        investment={assetEditor?.investment}
         investmentCategories={investmentCategories}
-        investments={investments}
         settings={settings}
-        onClose={() => setEditor(null)}
+        onClose={() => setAssetEditor(null)}
         onSaved={onRefresh}
       />
+
+      {transactionEditor && (
+        <InvestmentTransactionEditor
+          open
+          investment={transactionEditor.investment}
+          transaction={transactionEditor.transaction}
+          defaultKind={transactionEditor.defaultKind}
+          investmentTransactions={investmentTransactions}
+          settings={settings}
+          onClose={() => setTransactionEditor(null)}
+          onSaved={onRefresh}
+        />
+      )}
 
       <Dialog
         open={!!deleteTarget}
@@ -2302,127 +2467,347 @@ const monthlyPoints = useMemo(
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>حذف سرمایه‌گذاری</DialogTitle>
+            <DialogTitle>حذف دارایی</DialogTitle>
             <DialogDescription>
-              {deleteTarget?.name} برای همیشه حذف می‌شود. این عمل قابل بازگشت
-              نیست.
+              {deleteTarget?.name} و تمام تراکنش‌های مربوط به آن حذف می‌شود.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5 flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteTarget(null)}>
+              انصراف
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={removeAsset}>
+              حذف
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteTransactionTarget}
+        onOpenChange={(v) => !v && setDeleteTransactionTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>حذف تراکنش سرمایه‌گذاری</DialogTitle>
+            <DialogDescription>
+              این تراکنش برای همیشه حذف می‌شود.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-5 flex gap-2">
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => setDeleteTarget(null)}
+              onClick={() => setDeleteTransactionTarget(null)}
             >
               انصراف
             </Button>
-            <Button variant="destructive" className="flex-1" onClick={remove}>
+            <Button variant="destructive" className="flex-1" onClick={removeTransaction}>
               حذف
             </Button>
           </div>
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
 
-function InvestmentEditor({
+function InvestmentAssetEditor({
   open,
   investment,
   investmentCategories,
-  investments,
   settings,
   onClose,
   onSaved,
 }: {
-  open: boolean;
-  investment?: Investment;
-  investmentCategories: InvestmentCategory[];
-  investments: Investment[];
-  settings: AppSettings;
-  onClose: () => void;
-  onSaved: () => void;
+  open: boolean
+  investment?: Investment
+  investmentCategories: InvestmentCategory[]
+  settings: AppSettings
+  onClose: () => void
+  onSaved: () => void
 }) {
-  const [name, setName] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [kind, setKind] = useState<InvestmentKind>("buy");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(todayIso());
-  const [note, setNote] = useState("");
-  const [error, setError] = useState("");
+  const [name, setName] = useState("")
+  const [categoryId, setCategoryId] = useState("")
+  const [unit, setUnit] = useState<Investment["unit"]>("piece")
+  const [currentPrice, setCurrentPrice] = useState("")
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    setName(investment?.name ?? "");
-    setCategoryId(investment?.categoryId ?? investmentCategories[0]?.id ?? "");
-    setKind(investment?.kind ?? "buy");
-    setAmount(investment ? String(investment.amount) : "");
-    setDate(investment?.date ?? todayIso());
-    setNote(investment?.note ?? "");
-    setError("");
-  }, [investment, open, investmentCategories]);
-
-  const availableInCategory = useMemo(() => {
-    if (!categoryId) return 0;
-    return investments
-      .filter((i) => i.categoryId === categoryId && i.id !== investment?.id)
-      .reduce((s, i) => s + signedInvestmentAmount(i), 0);
-  }, [investments, categoryId, investment]);
+    setName(investment?.name ?? "")
+    setCategoryId(investment?.categoryId ?? investmentCategories[0]?.id ?? "")
+    setUnit(investment?.unit ?? "piece")
+    setCurrentPrice(investment ? String(investment.currentPrice || "") : "")
+    setError("")
+  }, [investment, open, investmentCategories])
 
   const save = async () => {
-    const clean = name.trim();
-    const value = Number(amount.replace(/\D/g, ""));
-    if (!clean || !value || !categoryId) {
-      setError("لطفاً نام، دسته‌بندی و مبلغ را کامل کنید.");
-      return;
+    const clean = name.trim()
+    const price = Number(currentPrice.replace(/\D/g, ""))
+
+    if (!clean || !categoryId) {
+      setError("نام و دسته‌بندی را کامل کنید.")
+      return
     }
-    if (kind === "sell" && value > availableInCategory) {
-      setError("مبلغ فروش نمی‌تواند بیشتر از سرمایه‌گذاری موجود در این دسته باشد.");
-      return;
+
+    if (price < 0 || Number.isNaN(price)) {
+      setError("قیمت فعلی معتبر نیست.")
+      return
     }
-    const now = new Date().toISOString();
-    if (investment)
+
+    const now = new Date().toISOString()
+
+    if (investment) {
       await db.investments.update(investment.id, {
         name: clean,
         categoryId,
-        kind,
-        amount: value,
-        date,
-        note: note.trim(),
+        unit,
+        currentPrice: price,
         updatedAt: now,
-      });
-    else
+      })
+    } else {
       await db.investments.add({
         id: uid(),
         name: clean,
         categoryId,
-        kind,
-        amount: value,
-        date,
-        note: note.trim(),
+        unit,
+        currentPrice: price,
         createdAt: now,
         updatedAt: now,
-      });
-    await onSaved();
-    onClose();
-  };
+      })
+    }
+
+    await onSaved()
+    onClose()
+  }
+
+  const unitOptions = [
+    { value: "piece", label: "عدد" },
+    { value: "gram", label: "گرم" },
+    { value: "share", label: "سهم" },
+    { value: "unit", label: "واحد" },
+  ] as const
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {investment ? "ویرایش سرمایه‌گذاری" : "سرمایه‌گذاری جدید"}
+            {investment ? "ویرایش دارایی" : "دارایی جدید"}
           </DialogTitle>
           <DialogDescription>
-            نام، دسته‌بندی و مبلغ سرمایه‌گذاری را وارد کنید.
+            مشخصات دارایی را وارد کنید. خرید و فروش در مرحله بعد ثبت می‌شود.
           </DialogDescription>
         </DialogHeader>
+
         <div className="space-y-4">
-                    <div className="flex w-full rounded-xl bg-muted/60 p-1">
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="مثلاً سکه امامی"
+          />
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">دسته‌بندی</label>
+            <Select
+              value={categoryId}
+              onValueChange={setCategoryId}
+              options={investmentCategories.map((c) => ({
+                value: c.id,
+                label: c.name,
+                icon: categoryIconMap[c.icon] || Package,
+              }))}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">واحد</label>
+            <Select
+              value={unit}
+              onValueChange={(value) => setUnit(value as Investment["unit"])}
+              options={unitOptions.map((item) => ({
+                value: item.value,
+                label: item.label,
+              }))}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              قیمت فعلی هر واحد ({settings.currency})
+            </label>
+            <Input
+              inputMode="numeric"
+              value={
+                currentPrice
+                  ? Number(currentPrice.replace(/\D/g, "")).toLocaleString("en-US")
+                  : ""
+              }
+              onChange={(e) => setCurrentPrice(e.target.value)}
+              placeholder="مثلاً ۲۵۰۰۰۰۰۰۰"
+              className="h-14 text-xl font-bold"
+            />
+          </div>
+
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
+
+          <Button
+            className="h-11 w-full rounded-xl"
+            onClick={save}
+            disabled={!name.trim() || !categoryId}
+          >
+            {investment ? "ذخیره تغییرات" : "افزودن دارایی"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function InvestmentTransactionEditor({
+  open,
+  investment,
+  transaction,
+  defaultKind,
+  investmentTransactions,
+  settings,
+  onClose,
+  onSaved,
+}: {
+  open: boolean
+  investment: Investment
+  transaction?: InvestmentTransaction
+  defaultKind?: InvestmentTransactionKind
+  investmentTransactions: InvestmentTransaction[]
+  settings: AppSettings
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [kind, setKind] = useState<InvestmentTransactionKind>("buy")
+  const [quantity, setQuantity] = useState("")
+  const [unitPrice, setUnitPrice] = useState("")
+  const [amount, setAmount] = useState("")
+  const [date, setDate] = useState(todayIso())
+  const [note, setNote] = useState("")
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    setKind(transaction?.kind ?? defaultKind ?? "buy")
+    setQuantity(transaction ? String(transaction.quantity) : "")
+    setUnitPrice(
+      transaction
+        ? String(transaction.unitPrice)
+        : investment.currentPrice
+          ? String(investment.currentPrice)
+          : "",
+    )
+    setAmount(transaction ? String(transaction.amount) : "")
+    setDate(transaction?.date ?? todayIso())
+    setNote(transaction?.note ?? "")
+    setError("")
+  }, [transaction, defaultKind, investment, open])
+
+  const availableQuantity = useMemo(() => {
+    return investmentTransactions
+      .filter(
+        (t) =>
+          t.investmentId === investment.id &&
+          t.id !== transaction?.id,
+      )
+      .reduce((sum, t) => {
+        if (t.kind === "buy") return sum + t.quantity
+        if (t.kind === "sell") return sum - t.quantity
+        return sum
+      }, 0)
+  }, [investmentTransactions, investment.id, transaction])
+
+  useEffect(() => {
+    if (kind === "buy" || kind === "sell") {
+      const q = Number(quantity)
+      const p = Number(unitPrice.replace(/\D/g, ""))
+      if (q > 0 && p > 0) setAmount(String(Math.round(q * p)))
+    }
+  }, [quantity, unitPrice, kind])
+
+  const save = async () => {
+    const q = Number(quantity.replace(",", "."))
+    const p = Number(unitPrice.replace(/\D/g, ""))
+    const value =
+      kind === "buy" || kind === "sell"
+        ? Math.round(q * p)
+        : Number(amount.replace(/\D/g, ""))
+
+    if ((kind === "buy" || kind === "sell") && (!q || q <= 0 || !p || p <= 0)) {
+      setError("تعداد و قیمت واحد را وارد کنید.")
+      return
+    }
+
+    if ((kind === "dividend" || kind === "fee") && (!value || value <= 0)) {
+      setError("مبلغ را وارد کنید.")
+      return
+    }
+
+    if (kind === "sell" && q > availableQuantity + 1e-9) {
+      setError(
+        `موجودی قابل فروش: ${formatQuantity(Math.max(0, availableQuantity))} ${investmentUnitLabel(investment.unit)}`,
+      )
+      return
+    }
+
+    const now = new Date().toISOString()
+    const payload = {
+      investmentId: investment.id,
+      kind,
+      quantity: kind === "buy" || kind === "sell" ? q : 0,
+      unitPrice: kind === "buy" || kind === "sell" ? p : 0,
+      amount: value,
+      date,
+      note: note.trim(),
+      updatedAt: now,
+    }
+
+    if (transaction) {
+      await db.investmentTransactions.update(transaction.id, payload)
+    } else {
+      await db.investmentTransactions.add({
+        id: uid(),
+        ...payload,
+        createdAt: now,
+      })
+    }
+
+    await onSaved()
+    onClose()
+  }
+
+  const isTrade = kind === "buy" || kind === "sell"
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {transaction ? "ویرایش تراکنش" : `ثبت تراکنش · ${investment.name}`}
+          </DialogTitle>
+          <DialogDescription>
+            موجودی فعلی: {formatQuantity(availableQuantity)}{" "}
+            {investmentUnitLabel(investment.unit)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
             {(
               [
                 ["buy", "خرید"],
                 ["sell", "فروش"],
+                ["dividend", "سود نقدی"],
+                ["fee", "کارمزد"],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -2430,64 +2815,87 @@ function InvestmentEditor({
                 type="button"
                 onClick={() => setKind(id)}
                 className={cn(
-                  "relative flex h-9 flex-1 items-center justify-center rounded-lg",
-                  "text-sm! font-medium! transition-all duration-200",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                  id === kind
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
+                  "h-10 rounded-xl text-sm font-medium transition-all",
+                  kind === id
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground hover:text-foreground",
                 )}
               >
                 {label}
               </button>
             ))}
           </div>
-          <Input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="مثلاً سهام فولاد"
-          />
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              دسته‌بندی
-            </label>
-            {investmentCategories.length ? (
-              <Select
-                value={categoryId}
-                onValueChange={setCategoryId}
-                options={investmentCategories.map((c) => ({
-                  value: c.id,
-                  label: c.name,
-                  icon: categoryIconMap[c.icon] || Package,
-                }))}
+
+          {isTrade ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  تعداد ({investmentUnitLabel(investment.unit)})
+                </label>
+                <Input
+                  inputMode="decimal"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value.replace(/[^0-9.]/g, ""))}
+                  placeholder="مثلاً ۳"
+                  className="h-12"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  قیمت هر واحد
+                </label>
+                <Input
+                  inputMode="numeric"
+                  value={
+                    unitPrice
+                      ? Number(unitPrice.replace(/\D/g, "")).toLocaleString("en-US")
+                      : ""
+                  }
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                  placeholder="۰"
+                  className="h-12"
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                مبلغ ({settings.currency})
+              </label>
+              <Input
+                inputMode="numeric"
+                value={
+                  amount
+                    ? Number(amount.replace(/\D/g, "")).toLocaleString("en-US")
+                    : ""
+                }
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="۰"
+                className="h-14 text-2xl font-bold"
               />
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                ابتدا یک دسته‌بندی سرمایه‌گذاری بسازید.
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              مبلغ ({settings.currency})
-            </label>
-            <Input
-              inputMode="numeric"
-              value={
-                amount
-                  ? Number(amount.replace(/\D/g, "")).toLocaleString("en-US")
-                  : ""
-              }
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="۰"
-              className="h-14 text-2xl font-bold"
-            />
-          </div>
+            </div>
+          )}
+
+          {isTrade && (
+            <div className="rounded-xl bg-muted/50 px-3 py-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">مبلغ تراکنش</span>
+                <span className="font-bold">
+                  {formatMoney(
+                    Number(amount.replace(/\D/g, "")) || 0,
+                    settings,
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="mb-2 block text-sm font-medium">تاریخ</label>
             <PersianDatePicker value={date} onChange={setDate} />
           </div>
+
           <div>
             <label className="mb-2 block text-sm font-medium">یادداشت</label>
             <Input
@@ -2496,27 +2904,28 @@ function InvestmentEditor({
               placeholder="اختیاری"
             />
           </div>
-                    {kind === "sell" && categoryId && (
-            <p className="text-xs text-muted-foreground">
-              موجودی این دسته: {formatMoney(availableInCategory, settings)}
-            </p>
-          )}
+
           {error && (
             <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
             </p>
           )}
+
           <Button
-            className="w-full"
+            className="h-11 w-full rounded-xl"
             onClick={save}
-            disabled={!name.trim() || !amount.trim() || !categoryId}
+            disabled={
+              isTrade
+                ? !quantity.trim() || !unitPrice.trim()
+                : !amount.trim()
+            }
           >
-            {investment ? "ذخیره تغییرات" : "افزودن سرمایه‌گذاری"}
+            {transaction ? "ذخیره تغییرات" : "ثبت تراکنش"}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 function InvestmentCategoriesScreen({
