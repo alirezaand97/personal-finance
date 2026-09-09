@@ -40,10 +40,13 @@ export type InvestmentCategory = {
   createdAt: string
 }
 
+export type InvestmentKind = "buy" | "sell"
+
 export type Investment = {
   id: string
   name: string
   categoryId: string
+  kind: InvestmentKind
   amount: number
   date: string
   note: string
@@ -149,6 +152,22 @@ class FinanceDB extends Dexie {
           await tx.table("investments").update(inv.id, { categoryId: matchId })
         }
       })
+        this.version(4)
+      .stores({
+        transactions: "id, type, date, categoryId, createdAt",
+        categories: "id, type",
+        settings: "id",
+        investments: "id, categoryId, kind, date, createdAt",
+        investmentCategories: "id, createdAt",
+      })
+      .upgrade(async (tx) => {
+        const rows = await tx.table("investments").toArray()
+        for (const row of rows) {
+          if (!row.kind) await tx.table("investments").update(row.id, { kind: "buy" })
+        }
+      })
+  }
+}
   }
 }
 
