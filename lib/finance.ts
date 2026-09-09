@@ -30,6 +30,36 @@ export type Category = {
   createdAt: string
 }
 
+export type InvestmentCategory = {
+  id: string
+  name: string
+  /** Stable icon key, not an emoji or display text. */
+  icon: string
+  /** Optional CSS color used by charts. */
+  color: string
+  createdAt: string
+}
+
+export type Investment = {
+  id: string
+  name: string
+  categoryId: string
+  amount: number
+  date: string
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
+export const defaultInvestmentCategories = [
+  ["سهام", "stock"],
+  ["ارز دیجیتال", "crypto"],
+  ["طلا و سکه", "gold"],
+  ["صندوق سرمایه‌گذاری", "fund"],
+  ["املاک", "realestate"],
+  ["سایر", "other"],
+] as const
+
 export type AppSettings = {
   id: "app"
   digitStyle: DigitStyle
@@ -72,6 +102,8 @@ class FinanceDB extends Dexie {
   transactions!: Table<Transaction, string>
   categories!: Table<Category, string>
   settings!: Table<AppSettings, "app">
+  investments!: Table<Investment, string>
+  investmentCategories!: Table<InvestmentCategory, string>
 
   constructor() {
     super("hamrah-finance")
@@ -80,6 +112,43 @@ class FinanceDB extends Dexie {
       categories: "id, type",
       settings: "id",
     })
+    this.version(2).stores({
+      transactions: "id, type, date, categoryId, createdAt",
+      categories: "id, type",
+      settings: "id",
+      investments: "id, type, date, createdAt",
+    })
+    this.version(3)
+      .stores({
+        transactions: "id, type, date, categoryId, createdAt",
+        categories: "id, type",
+        settings: "id",
+        investments: "id, categoryId, date, createdAt",
+        investmentCategories: "id, createdAt",
+      })
+      .upgrade(async (tx) => {
+        // Seed default investment categories
+        const now = new Date().toISOString()
+        const seeded = defaultInvestmentCategories.map(([name, icon]) => ({
+          id: crypto.randomUUID(),
+          name,
+          icon,
+          color: "",
+          createdAt: now,
+        }))
+        await tx.table("investmentCategories").bulkAdd(seeded)
+
+        // Migrate any existing investments that had the old `type` field
+        // to point at the matching seeded category.
+        const byIcon = new Map(seeded.map((c) => [c.icon, c.id]))
+        const oldInvestments = await tx.table("investments").toArray()
+        for (const inv of oldInvestments) {
+          if (inv.categoryId) continue
+          const legacyType = (inv as unknown as { type?: string }).type
+          const matchId = byIcon.get(legacyType ?? "other") ?? byIcon.get("other")
+          await tx.table("investments").update(inv.id, { categoryId: matchId })
+        }
+      })
   }
 }
 
@@ -96,6 +165,14 @@ async function migrateLegacyCategoryIcons() {
 export async function seedDatabase() {
   if (await db.settings.get("app")) {
     await migrateLegacyCategoryIcons()
+    if ((await db.investmentCategories.count()) === 0) {
+      const now = new Date().toISOString()
+      await db.investmentCategories.bulkAdd(
+        defaultInvestmentCategories.map(([name, icon]) => ({
+          id: crypto.randomUUID(), name, icon, color: "", createdAt: now,
+        })),
+      )
+    }
     return
   }
 
@@ -108,9 +185,15 @@ export async function seedDatabase() {
       id: crypto.randomUUID(), name, icon, type: "income" as const, color: "", createdAt: now,
     })),
   ]
+  const investmentCategories: InvestmentCategory[] = defaultInvestmentCategories.map(
+    ([name, icon]) => ({
+      id: crypto.randomUUID(), name, icon, color: "", createdAt: now,
+    }),
+  )
 
-  await db.transaction("rw", db.categories, db.settings, async () => {
+  await db.transaction("rw", db.categories, db.settings, db.investmentCategories, async () => {
     await db.categories.bulkAdd(categories)
+    await db.investmentCategories.bulkAdd(investmentCategories)
     await db.settings.add({
       id: "app",
       digitStyle: "fa",
@@ -187,33 +270,56 @@ export async function exportBackup() {
     transactions: await db.transactions.toArray(),
     categories: await db.categories.toArray(),
     settings: await db.settings.get("app"),
+    investments: await db.investments.toArray(),
+    investmentCategories: await db.investmentCategories.toArray(),
   }
   return JSON.stringify(payload, null, 2)
 }
 
 export async function importBackup(
-  payload: { transactions?: Transaction[]; categories?: Category[]; settings?: AppSettings },
+  payload: {
+    transactions?: Transaction[]
+    categories?: Category[]
+    settings?: AppSettings
+    investments?: Investment[]
+    investmentCategories?: InvestmentCategory[]
+  },
   merge = false,
 ) {
-  await db.transaction("rw", db.transactions, db.categories, db.settings, async () => {
-    if (!merge) {
-      await db.transactions.clear()
-      await db.categories.clear()
-    }
-    if (payload.transactions?.length) await db.transactions.bulkPut(payload.transactions)
-    if (payload.categories?.length) await db.categories.bulkPut(
-      payload.categories.map(c => ({ ...c, icon: legacyIconMap[c.icon] ?? c.icon ?? "other" })),
-    )
-    if (payload.settings) await db.settings.put(payload.settings)
-  })
+  await db.transaction(
+    "rw",
+    db.transactions, db.categories, db.settings, db.investments, db.investmentCategories,
+    async () => {
+      if (!merge) {
+        await db.transactions.clear()
+        await db.categories.clear()
+        await db.investments.clear()
+        await db.investmentCategories.clear()
+      }
+      if (payload.transactions?.length) await db.transactions.bulkPut(payload.transactions)
+      if (payload.categories?.length) await db.categories.bulkPut(
+        payload.categories.map(c => ({ ...c, icon: legacyIconMap[c.icon] ?? c.icon ?? "other" })),
+      )
+      if (payload.investments?.length) await db.investments.bulkPut(payload.investments)
+      if (payload.investmentCategories?.length)
+        await db.investmentCategories.bulkPut(payload.investmentCategories)
+      if (payload.settings) await db.settings.put(payload.settings)
+    },
+  )
 }
 
 export async function clearAll() {
-  await db.transaction("rw", db.transactions, db.categories, db.settings, async () => {
-    await db.transactions.clear()
-    await db.categories.clear()
-    await db.settings.clear()
-  })
+  await db.transaction(
+    "rw",
+    db.transactions, db.categories, db.settings, db.investments, db.investmentCategories,
+    async () => {
+      await db.transactions.clear()
+      await db.categories.clear()
+      await db.settings.clear()
+      await db.investments.clear()
+      await db.investmentCategories.clear()
+    },
+  )
   await seedDatabase()
 }
 
@@ -222,6 +328,8 @@ export async function getAll() {
     transactions: await db.transactions.orderBy("date").reverse().toArray(),
     categories: await db.categories.toArray(),
     settings: (await db.settings.get("app")) as AppSettings,
+    investments: await db.investments.orderBy("date").reverse().toArray(),
+    investmentCategories: await db.investmentCategories.toArray(),
   }
 }
 
