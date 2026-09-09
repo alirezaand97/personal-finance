@@ -2237,9 +2237,9 @@ function InvestmentsScreen({
                       <span
                         className={cn(
                           "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                          isSell
-                            ? "bg-primary/10 text-primary"
-                            : "bg-rose-500/10 text-rose-600",
+                              isSell
+            ? "bg-rose-500/10 text-rose-600"
+            : "bg-primary/10 text-primary",
                         )}
                       >
                         <CategoryIcon category={cat} className="size-5" />
@@ -2256,7 +2256,7 @@ function InvestmentsScreen({
                       <p
                         className={cn(
                           "shrink-0 text-sm font-bold",
-                          isSell ? "text-primary" : "text-rose-600",
+          isSell ? "text-rose-600" : "text-primary",
                         )}
                       >
                         {isSell ? "−" : "+"}
