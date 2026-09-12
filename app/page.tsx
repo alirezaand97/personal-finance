@@ -2643,6 +2643,12 @@ function InvestmentsScreen({
         settings={settings}
         onClose={() => setAssetEditor(null)}
         onSaved={onRefresh}
+        onCreated={(newInvestment) => {
+          setTransactionEditor({
+            investment: newInvestment,
+            defaultKind: "buy",
+          });
+        }}
       />
 
       {transactionEditor && (
@@ -2736,6 +2742,7 @@ function InvestmentAssetEditor({
   settings,
   onClose,
   onSaved,
+  onCreated,
 }: {
   open: boolean;
   investment?: Investment;
@@ -2743,6 +2750,7 @@ function InvestmentAssetEditor({
   settings: AppSettings;
   onClose: () => void;
   onSaved: () => void;
+  onCreated?: (investment: Investment) => void;
 }) {
   const [categoryId, setCategoryId] = useState("");
   const [name, setName] = useState("");
@@ -2845,8 +2853,17 @@ function InvestmentAssetEditor({
         symbolId: selectedStock.isin,
         updatedAt: now,
       };
-      if (investment) await db.investments.update(investment.id, payload);
-      else await db.investments.add({ id: uid(), ...payload, createdAt: now });
+      if (investment) {
+        await db.investments.update(investment.id, payload);
+      } else {
+        const newInvestment: Investment = {
+          id: uid(),
+          ...payload,
+          createdAt: now,
+        };
+        await db.investments.add(newInvestment);
+        onCreated?.(newInvestment);
+      }
       await onSaved();
       onClose();
       return;
@@ -2872,8 +2889,17 @@ function InvestmentAssetEditor({
         symbolId: selectedMarket.id,
         updatedAt: now,
       };
-      if (investment) await db.investments.update(investment.id, payload);
-      else await db.investments.add({ id: uid(), ...payload, createdAt: now });
+      if (investment) {
+        await db.investments.update(investment.id, payload);
+      } else {
+        const newInvestment: Investment = {
+          id: uid(),
+          ...payload,
+          createdAt: now,
+        };
+        await db.investments.add(newInvestment);
+        onCreated?.(newInvestment);
+      }
       await onSaved();
       onClose();
       return;
@@ -2900,8 +2926,17 @@ function InvestmentAssetEditor({
       symbolId: undefined,
       updatedAt: now,
     };
-    if (investment) await db.investments.update(investment.id, payload);
-    else await db.investments.add({ id: uid(), ...payload, createdAt: now });
+    if (investment) {
+      await db.investments.update(investment.id, payload);
+    } else {
+      const newInvestment: Investment = {
+        id: uid(),
+        ...payload,
+        createdAt: now,
+      };
+      await db.investments.add(newInvestment);
+      onCreated?.(newInvestment);
+    }
     await onSaved();
     onClose();
   };
