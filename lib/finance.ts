@@ -614,19 +614,29 @@ export type ChartPoint = {
 /*  بخش قیمت زنده سهام (Stock Quotes)                                     */
 /* ---------------------------------------------------------------------- */
 
+
+
 /**
- * آیا از آخرین باری که قیمت‌ها را از API گرفتیم، ساعت ۱۸:۰۰ امروز رد شده
- * و هنوز بعد از آن سینک نشده؟ اگر ساعت فعلی هنوز به ۱۸ نرسیده، سینک لازم نیست
- * (چون قیمت روز قبلاً همون روز قبل گرفته شده و کافیه).
+ * آیا از ساعت ۸ صبح تا ۸ عصر هستیم و حداقل یک ساعت از آخرین سینک گذشته؟
+ * خارج از این بازه (قبل از ۸ یا بعد از ۲۰) سینک لازم نیست.
  */
 export function needsStockSync(lastSyncedAt?: string) {
-  const now = new Date();
-  const todaySix = new Date(now);
-  todaySix.setHours(18, 0, 0, 0);
+  const now = new Date()
+  const hour = now.getHours()
+  if (hour < 8 || hour >= 20) return false
 
-  if (now < todaySix) return false;
-  if (!lastSyncedAt) return true;
-  return new Date(lastSyncedAt) < todaySix;
+  if (!lastSyncedAt) return true
+  const diffMs = now.getTime() - new Date(lastSyncedAt).getTime()
+  return diffMs >= 60 * 60 * 1000
+}
+
+export function exactTime(iso: string, style: DigitStyle = "fa") {
+  const time = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso))
+  return toFa(time, style)
 }
 
 export async function getStockSyncMeta() {

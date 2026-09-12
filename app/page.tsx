@@ -115,6 +115,7 @@ import {
   MarketQuote,
   searchMarketQuotes,
   syncMarketQuotes,
+  exactTime,
 } from "@/lib/finance";
 const chartColors = [
   "#20B77A",
@@ -867,7 +868,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <p className="mt-2 max-w-[250px] text-sm leading-6 text-muted-foreground">
         با ثبت اولین تراکنش، ردیابی هزینه‌ها و درآمدهای خود را شروع کنید.
       </p>
-      <Button className="mt-5 rounded-xl" onClick={onAdd}>
+      <Button className="mt-5 rounded-md" onClick={onAdd}>
         <Plus data-icon="inline-start" /> ثبت اولین تراکنش
       </Button>
     </Card>
@@ -2078,7 +2079,6 @@ function InvestmentsScreen({
   const [deleteTarget, setDeleteTarget] = useState<Investment | null>(null);
   const [deleteTransactionTarget, setDeleteTransactionTarget] =
     useState<InvestmentTransaction | null>(null);
-
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
   const [lastSync, setLastSync] = useState<string | null>(null);
@@ -2105,25 +2105,30 @@ function InvestmentsScreen({
     }
   };
 
+  const checkAndSync = async () => {
+    const [stockMeta, marketMeta] = await Promise.all([
+      getStockSyncMeta(),
+      getMarketSyncMeta(),
+    ]);
+    const latest = [stockMeta?.lastSyncedAt, marketMeta?.lastSyncedAt]
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    setLastSync(latest ?? null);
+    if (
+      needsStockSync(stockMeta?.lastSyncedAt) ||
+      needsStockSync(marketMeta?.lastSyncedAt)
+    ) {
+      await runSync();
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      const [stockMeta, marketMeta] = await Promise.all([
-        getStockSyncMeta(),
-        getMarketSyncMeta(),
-      ]);
-      const latest = [stockMeta?.lastSyncedAt, marketMeta?.lastSyncedAt]
-        .filter(Boolean)
-        .sort()
-        .at(-1);
-      setLastSync(latest ?? null);
-      if (
-        needsStockSync(stockMeta?.lastSyncedAt) ||
-        needsStockSync(marketMeta?.lastSyncedAt)
-      ) {
-        await runSync();
-      }
-    })();
-    // فقط یک‌بار هنگام باز شدن صفحه سرمایه‌گذاری اجرا شود
+    checkAndSync();
+    // هر ۵ دقیقه چک می‌کند که آیا یک ساعت از آخرین سینک گذشته؛
+    // خودِ needsStockSync مطمئن می‌شود که فقط بین ۸ تا ۲۰ سینک انجام شود
+    const interval = setInterval(checkAndSync, 5 * 60 * 1000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -2231,14 +2236,14 @@ function InvestmentsScreen({
       />
 
       <div className="flex flex-col gap-4 px-4 pb-28">
-        <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/50 px-3 py-2">
+        <div className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2">
           <div className="min-w-0">
             <p className="text-xs font-medium">قیمت‌های زنده</p>{" "}
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
               {syncing
                 ? "در حال دریافت قیمت‌ها..."
                 : lastSync
-                  ? `آخرین به‌روزرسانی: ${dayWord(lastSync)}`
+                  ? `آخرین به‌روزرسانی: ${dayWord(lastSync)} ساعت ${exactTime(lastSync, settings.digitStyle)}`
                   : "هنوز به‌روزرسانی نشده"}
             </p>
           </div>
@@ -2247,10 +2252,9 @@ function InvestmentsScreen({
             variant="outline"
             onClick={runSync}
             disabled={syncing}
-            className="shrink-0 gap-1.5"
+            className="shrink-0 px-2"
           >
             <RefreshCw className={cn("size-3.5", syncing && "animate-spin")} />
-            به‌روزرسانی
           </Button>
         </div>
         {syncError && (
@@ -2362,12 +2366,13 @@ function InvestmentsScreen({
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-bold">دارایی‌های من</h2>
+
             <Button
-              variant="link"
-              className="border-0 text-xs"
+              className="mt-5 rounded-sm text-xs!"
+              variant="outline"
               onClick={() => setAssetEditor({})}
             >
-              افزودن دارایی
+              <Plus data-icon="inline-start" /> افزودن دارایی
             </Button>
           </div>
 
@@ -2417,10 +2422,10 @@ function InvestmentsScreen({
                         {/* Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-bold flex gap-1">
+                            <p className="truncate text-sm font-semibold flex gap-1">
                               {investment.name}
                               {investment.symbolId && (
-                                <span className="ms-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 align-middle text-[9px] font-normal text-primary">
+                                <span className="ms-1.5 rounded-sm bg-primary/10 px-1.5 align-middle text-[9px] font-normal text-primary flex items-center justify-center">
                                   زنده
                                 </span>
                               )}
@@ -2455,10 +2460,6 @@ function InvestmentsScreen({
                         <div className="mt-3 flex items-center justify-between gap-2">
                           {/* Quantity */}
                           <div className="min-w-0">
-                            <p className="text-[10px] text-muted-foreground">
-                              موجودی
-                            </p>
-
                             <p className="mt-0.5 text-xs font-semibold">
                               {formatQuantity(quantity)}{" "}
                               <span className="font-normal text-muted-foreground">
@@ -2473,7 +2474,7 @@ function InvestmentsScreen({
                             <Button
                               size="icon-sm"
                               variant="ghost"
-                              className="rounded-xl text-primary hover:bg-primary/10 hover:text-primary"
+                              className="rounded-md text-primary hover:bg-primary/10 hover:text-primary"
                               onClick={() =>
                                 setTransactionEditor({
                                   investment,
@@ -2491,7 +2492,7 @@ function InvestmentsScreen({
                               size="icon-sm"
                               variant="ghost"
                               disabled={quantity <= 0}
-                              className="rounded-xl text-rose-600 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                              className="rounded-md text-rose-600 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
                               onClick={() =>
                                 setTransactionEditor({
                                   investment,
@@ -2508,7 +2509,7 @@ function InvestmentsScreen({
                             <Button
                               size="icon-sm"
                               variant="ghost"
-                              className="rounded-xl"
+                              className="rounded-md"
                               onClick={() => setAssetEditor({ investment })}
                               aria-label="ویرایش دارایی"
                               title="ویرایش"
@@ -2520,7 +2521,7 @@ function InvestmentsScreen({
                             <Button
                               size="icon-sm"
                               variant="ghost"
-                              className="rounded-xl text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                              className="rounded-md text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
                               onClick={() => setDeleteTarget(investment)}
                               aria-label="حذف دارایی"
                               title="حذف"
@@ -2720,8 +2721,13 @@ function InvestmentsScreen({
   );
 }
 
-type LiveMarketKind = "stock" | "gold" | "currency" | "crypto"
-const liveCategoryIcons: LiveMarketKind[] = ["stock", "gold", "currency", "crypto"]
+type LiveMarketKind = "stock" | "gold" | "currency" | "crypto";
+const liveCategoryIcons: LiveMarketKind[] = [
+  "stock",
+  "gold",
+  "currency",
+  "crypto",
+];
 
 function InvestmentAssetEditor({
   open,
@@ -2731,101 +2737,105 @@ function InvestmentAssetEditor({
   onClose,
   onSaved,
 }: {
-  open: boolean
-  investment?: Investment
-  investmentCategories: InvestmentCategory[]
-  settings: AppSettings
-  onClose: () => void
-  onSaved: () => void
+  open: boolean;
+  investment?: Investment;
+  investmentCategories: InvestmentCategory[];
+  settings: AppSettings;
+  onClose: () => void;
+  onSaved: () => void;
 }) {
-  const [categoryId, setCategoryId] = useState("")
-  const [name, setName] = useState("")
-  const [unit, setUnit] = useState<Investment["unit"]>("piece")
-  const [currentPrice, setCurrentPrice] = useState("")
-  const [error, setError] = useState("")
+  const [categoryId, setCategoryId] = useState("");
+  const [name, setName] = useState("");
+  const [unit, setUnit] = useState<Investment["unit"]>("piece");
+  const [currentPrice, setCurrentPrice] = useState("");
+  const [error, setError] = useState("");
 
-  const [query, setQuery] = useState("")
-  const [stockResults, setStockResults] = useState<StockQuote[]>([])
-  const [marketResults, setMarketResults] = useState<MarketQuote[]>([])
-  const [selectedStock, setSelectedStock] = useState<StockQuote | null>(null)
-  const [selectedMarket, setSelectedMarket] = useState<MarketQuote | null>(null)
+  const [query, setQuery] = useState("");
+  const [stockResults, setStockResults] = useState<StockQuote[]>([]);
+  const [marketResults, setMarketResults] = useState<MarketQuote[]>([]);
+  const [selectedStock, setSelectedStock] = useState<StockQuote | null>(null);
+  const [selectedMarket, setSelectedMarket] = useState<MarketQuote | null>(
+    null,
+  );
 
-  const selectedCategory = investmentCategories.find((c) => c.id === categoryId)
-  const liveKind = selectedCategory?.icon as LiveMarketKind | undefined
-  const isLive = !!liveKind && liveCategoryIcons.includes(liveKind)
-  const isStockLive = liveKind === "stock"
-  const isMarketLive = isLive && !isStockLive
+  const selectedCategory = investmentCategories.find(
+    (c) => c.id === categoryId,
+  );
+  const liveKind = selectedCategory?.icon as LiveMarketKind | undefined;
+  const isLive = !!liveKind && liveCategoryIcons.includes(liveKind);
+  const isStockLive = liveKind === "stock";
+  const isMarketLive = isLive && !isStockLive;
 
   useEffect(() => {
-    setCategoryId(investment?.categoryId ?? investmentCategories[0]?.id ?? "")
-    setName(investment?.name ?? "")
-    setUnit(investment?.unit ?? "piece")
-    setCurrentPrice(investment ? String(investment.currentPrice || "") : "")
-    setQuery("")
-    setStockResults([])
-    setMarketResults([])
-    setSelectedStock(null)
-    setSelectedMarket(null)
-    setError("")
+    setCategoryId(investment?.categoryId ?? investmentCategories[0]?.id ?? "");
+    setName(investment?.name ?? "");
+    setUnit(investment?.unit ?? "piece");
+    setCurrentPrice(investment ? String(investment.currentPrice || "") : "");
+    setQuery("");
+    setStockResults([]);
+    setMarketResults([]);
+    setSelectedStock(null);
+    setSelectedMarket(null);
+    setError("");
 
     if (investment?.symbolId) {
       if (investment.symbolId.includes(":")) {
         getMarketQuote(investment.symbolId).then((q) => {
-          if (q) setSelectedMarket(q)
-        })
+          if (q) setSelectedMarket(q);
+        });
       } else {
         getStockQuote(investment.symbolId).then((q) => {
-          if (q) setSelectedStock(q)
-        })
+          if (q) setSelectedStock(q);
+        });
       }
     }
-  }, [investment, open, investmentCategories])
+  }, [investment, open, investmentCategories]);
 
   const changeCategory = (id: string) => {
-    setCategoryId(id)
-    setError("")
-    setQuery("")
-    setStockResults([])
-    setMarketResults([])
-    setSelectedStock(null)
-    setSelectedMarket(null)
-  }
+    setCategoryId(id);
+    setError("");
+    setQuery("");
+    setStockResults([]);
+    setMarketResults([]);
+    setSelectedStock(null);
+    setSelectedMarket(null);
+  };
 
   useEffect(() => {
-    if (!isStockLive) return
-    let active = true
+    if (!isStockLive) return;
+    let active = true;
     searchStockQuotes(query).then((r) => {
-      if (active) setStockResults(r)
-    })
+      if (active) setStockResults(r);
+    });
     return () => {
-      active = false
-    }
-  }, [query, isStockLive])
+      active = false;
+    };
+  }, [query, isStockLive]);
 
   useEffect(() => {
-    if (!isMarketLive || !liveKind) return
-    let active = true
+    if (!isMarketLive || !liveKind) return;
+    let active = true;
     searchMarketQuotes(liveKind as MarketKind, query).then((r) => {
-      if (active) setMarketResults(r)
-    })
+      if (active) setMarketResults(r);
+    });
     return () => {
-      active = false
-    }
-  }, [query, isMarketLive, liveKind])
+      active = false;
+    };
+  }, [query, isMarketLive, liveKind]);
 
   const save = async () => {
-    setError("")
-    const now = new Date().toISOString()
+    setError("");
+    const now = new Date().toISOString();
 
     if (!categoryId) {
-      setError("دسته‌بندی را انتخاب کنید.")
-      return
+      setError("دسته‌بندی را انتخاب کنید.");
+      return;
     }
 
     if (isStockLive) {
       if (!selectedStock) {
-        setError("یک نماد از لیست بورس انتخاب کنید.")
-        return
+        setError("یک نماد از لیست بورس انتخاب کنید.");
+        return;
       }
       const payload = {
         name: selectedStock.name,
@@ -2834,25 +2844,25 @@ function InvestmentAssetEditor({
         currentPrice: selectedStock.lastPrice,
         symbolId: selectedStock.isin,
         updatedAt: now,
-      }
-      if (investment) await db.investments.update(investment.id, payload)
-      else await db.investments.add({ id: uid(), ...payload, createdAt: now })
-      await onSaved()
-      onClose()
-      return
+      };
+      if (investment) await db.investments.update(investment.id, payload);
+      else await db.investments.add({ id: uid(), ...payload, createdAt: now });
+      await onSaved();
+      onClose();
+      return;
     }
 
     if (isMarketLive) {
       if (!selectedMarket) {
-        setError("یک مورد از لیست انتخاب کنید.")
-        return
+        setError("یک مورد از لیست انتخاب کنید.");
+        return;
       }
       const unitForMarket: Investment["unit"] =
         liveKind === "gold"
           ? selectedMarket.symbol.includes("COIN")
             ? "piece"
             : "gram"
-          : "unit"
+          : "unit";
 
       const payload = {
         name: selectedMarket.name,
@@ -2861,25 +2871,25 @@ function InvestmentAssetEditor({
         currentPrice: selectedMarket.price,
         symbolId: selectedMarket.id,
         updatedAt: now,
-      }
-      if (investment) await db.investments.update(investment.id, payload)
-      else await db.investments.add({ id: uid(), ...payload, createdAt: now })
-      await onSaved()
-      onClose()
-      return
+      };
+      if (investment) await db.investments.update(investment.id, payload);
+      else await db.investments.add({ id: uid(), ...payload, createdAt: now });
+      await onSaved();
+      onClose();
+      return;
     }
 
     // حالت دستی (بدون اتصال زنده)
-    const clean = name.trim()
-    const price = Number(currentPrice.replace(/\D/g, ""))
+    const clean = name.trim();
+    const price = Number(currentPrice.replace(/\D/g, ""));
 
     if (!clean) {
-      setError("نام دارایی را وارد کنید.")
-      return
+      setError("نام دارایی را وارد کنید.");
+      return;
     }
     if (price < 0 || Number.isNaN(price)) {
-      setError("قیمت فعلی معتبر نیست.")
-      return
+      setError("قیمت فعلی معتبر نیست.");
+      return;
     }
 
     const payload = {
@@ -2889,25 +2899,25 @@ function InvestmentAssetEditor({
       currentPrice: price,
       symbolId: undefined,
       updatedAt: now,
-    }
-    if (investment) await db.investments.update(investment.id, payload)
-    else await db.investments.add({ id: uid(), ...payload, createdAt: now })
-    await onSaved()
-    onClose()
-  }
+    };
+    if (investment) await db.investments.update(investment.id, payload);
+    else await db.investments.add({ id: uid(), ...payload, createdAt: now });
+    await onSaved();
+    onClose();
+  };
 
   const unitOptions = [
     { value: "piece", label: "عدد" },
     { value: "gram", label: "گرم" },
     { value: "share", label: "سهم" },
     { value: "unit", label: "واحد" },
-  ] as const
+  ] as const;
 
   const canSave = isStockLive
     ? !!selectedStock && !!categoryId
     : isMarketLive
       ? !!selectedMarket && !!categoryId
-      : !!name.trim() && !!categoryId
+      : !!name.trim() && !!categoryId;
 
   const marketPlaceholder =
     liveKind === "gold"
@@ -2916,7 +2926,7 @@ function InvestmentAssetEditor({
         ? "مثلاً دلار یا یورو"
         : liveKind === "crypto"
           ? "مثلاً بیت‌کوین یا اتریوم"
-          : ""
+          : "";
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -2972,12 +2982,12 @@ function InvestmentAssetEditor({
                       type="button"
                       onClick={() => setSelectedStock(r)}
                       className={cn(
-                        "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm transition-colors hover:bg-muted",
+                        "flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-sm transition-colors hover:bg-muted",
                         selectedStock?.isin === r.isin &&
                           "border-primary bg-primary/10 ring-2 ring-primary/20",
                       )}
                     >
-                      <span className="min-w-0 truncate text-start flex gap-1">
+                      <span className="min-w-0 truncate text-start flex gap-1 items-center text-sm">
                         <span className="font-semibold">{r.symbol}</span>
                         <span className="ms-1.5 text-xs text-muted-foreground">
                           {r.name}
@@ -2996,12 +3006,12 @@ function InvestmentAssetEditor({
                       type="button"
                       onClick={() => setSelectedMarket(r)}
                       className={cn(
-                        "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm transition-colors hover:bg-muted",
+                        "flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-sm transition-colors hover:bg-muted",
                         selectedMarket?.id === r.id &&
                           "border-primary bg-primary/10 ring-2 ring-primary/20",
                       )}
                     >
-                      <span className="min-w-0 truncate text-start flex gap-1">
+                      <span className="min-w-0 truncate text-start flex gap-1 items-center text-sm">
                         {r.name}
                       </span>
                       <span className="shrink-0 text-xs font-medium">
@@ -3018,8 +3028,8 @@ function InvestmentAssetEditor({
                 )}
                 {isMarketLive && !marketResults.length && (
                   <p className="px-1 py-2 text-xs text-muted-foreground">
-                    موردی پیدا نشد. اگر تازه اپ را باز کرده‌اید، منتظر بمانید
-                    تا قیمت‌ها دریافت شود.
+                    موردی پیدا نشد. اگر تازه اپ را باز کرده‌اید، منتظر بمانید تا
+                    قیمت‌ها دریافت شود.
                   </p>
                 )}
               </div>
@@ -3057,7 +3067,9 @@ function InvestmentAssetEditor({
           {!isLive && (
             <>
               <div>
-                <label className="mb-2 block text-sm font-medium">نام دارایی</label>
+                <label className="mb-2 block text-sm font-medium">
+                  نام دارایی
+                </label>
                 <Input
                   autoFocus
                   value={name}
@@ -3070,7 +3082,9 @@ function InvestmentAssetEditor({
                 <label className="mb-2 block text-sm font-medium">واحد</label>
                 <Select
                   value={unit}
-                  onValueChange={(value) => setUnit(value as Investment["unit"])}
+                  onValueChange={(value) =>
+                    setUnit(value as Investment["unit"])
+                  }
                   options={unitOptions.map((item) => ({
                     value: item.value,
                     label: item.label,
@@ -3086,7 +3100,9 @@ function InvestmentAssetEditor({
                   inputMode="numeric"
                   value={
                     currentPrice
-                      ? Number(currentPrice.replace(/\D/g, "")).toLocaleString("en-US")
+                      ? Number(currentPrice.replace(/\D/g, "")).toLocaleString(
+                          "en-US",
+                        )
                       : ""
                   }
                   onChange={(e) => setCurrentPrice(e.target.value)}
@@ -3113,7 +3129,7 @@ function InvestmentAssetEditor({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 function InvestmentTransactionEditor({
   open,
