@@ -43,6 +43,7 @@ import {
   Bitcoin,
   Banknote,
   type LucideIcon,
+  ArrowLeftRight,
 } from "lucide-react";
 import {
   Bar,
@@ -3937,7 +3938,7 @@ function BottomNav({
       />
       <NavItem
         active={screen === "transactions"}
-        icon={<MoreHorizontal />}
+        icon={<ArrowLeftRight />}
         label="تراکنش‌ها"
         onClick={() => setScreen("transactions")}
       />
