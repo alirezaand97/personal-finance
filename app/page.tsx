@@ -2268,95 +2268,152 @@ function InvestmentsScreen({
             </Card>
           ) : (
             <div className="flex flex-col gap-2">
-              {metrics.map((item) => {
-                const { investment, quantity, currentValue, profit, profitPercent } = item
-                const cat = catMap.get(investment.categoryId)
+              
+            {metrics.map((item) => {
+  const {
+    investment,
+    quantity,
+    currentValue,
+    profit,
+    profitPercent,
+  } = item;
 
-                return (
-                  <Card key={investment.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <CategoryIcon category={cat} className="size-5" />
-                      </span>
+  const cat = catMap.get(investment.categoryId);
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold">{investment.name}</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {cat?.name ?? "سایر"} · {investmentUnitLabel(investment.unit)}
-                            </p>
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-bold">
-                              {formatMoney(currentValue, settings)}
-                            </p>
-                            <p className={cn(
-                              "mt-0.5 text-xs font-medium",
-                              profit >= 0 ? "text-primary" : "text-rose-600",
-                            )}>
-                              {profit >= 0 ? "+" : ""}
-                              {formatMoney(profit, settings)} ({profitPercent.toFixed(1)}٪)
-                            </p>
-                          </div>
-                        </div>
+  return (
+    <Card
+      key={investment.id}
+      className="overflow-hidden border-border/70 p-3.5 shadow-sm"
+    >
+      <div className="flex items-start gap-3">
+        {/* Asset icon */}
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <CategoryIcon category={cat} className="size-5" />
+        </span>
 
-                        <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2 text-xs">
-                          <span className="text-muted-foreground">موجودی</span>
-                          <span className="font-semibold">
-                            {formatQuantity(quantity)} {investmentUnitLabel(investment.unit)}
-                          </span>
-                        </div>
+        <div className="min-w-0 flex-1">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold">
+                {investment.name}
+              </p>
 
-                        <div className="mt-3 flex gap-2">
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                            onClick={() =>
-                              setTransactionEditor({
-                                investment,
-                                defaultKind: "buy",
-                              })
-                            }
-                          >
-                            خرید
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            disabled={quantity <= 0}
-                            onClick={() =>
-                              setTransactionEditor({
-                                investment,
-                                defaultKind: "sell",
-                              })
-                            }
-                          >
-                            فروش
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => setAssetEditor({ investment })}
-                            aria-label="ویرایش دارایی"
-                          >
-                            <Edit3 />
-                          </Button>
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => setDeleteTarget(investment)}
-                            aria-label="حذف دارایی"
-                          >
-                            <Trash2 />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                )
-              })}
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {cat?.name ?? "سایر"} ·{" "}
+                {investmentUnitLabel(investment.unit)}
+              </p>
+            </div>
+
+            {/* Current value + profit */}
+            <div className="shrink-0 text-left">
+              <p className="text-sm font-bold">
+                {formatMoney(currentValue, settings)}
+              </p>
+
+              <p
+                className={cn(
+                  "mt-0.5 text-[11px] font-medium",
+                  profit >= 0
+                    ? "text-primary"
+                    : "text-rose-600",
+                )}
+              >
+                {profit >= 0 ? "+" : ""}
+                {formatMoney(profit, settings)}
+                {" "}
+                ({profitPercent.toFixed(1)}٪)
+              </p>
+            </div>
+          </div>
+
+          {/* Quantity + actions */}
+          <div className="mt-3 flex items-center justify-between gap-2">
+            {/* Quantity */}
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground">
+                موجودی
+              </p>
+
+              <p className="mt-0.5 text-xs font-semibold">
+                {formatQuantity(quantity)}{" "}
+                <span className="font-normal text-muted-foreground">
+                  {investmentUnitLabel(investment.unit)}
+                </span>
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1">
+              {/* Buy */}
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="rounded-xl text-primary hover:bg-primary/10 hover:text-primary"
+                onClick={() =>
+                  setTransactionEditor({
+                    investment,
+                    defaultKind: "buy",
+                  })
+                }
+                aria-label={`خرید ${investment.name}`}
+                title="خرید"
+              >
+                <ArrowDownLeft className="size-4" />
+              </Button>
+
+              {/* Sell */}
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                disabled={quantity <= 0}
+                className="rounded-xl text-rose-600 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                onClick={() =>
+                  setTransactionEditor({
+                    investment,
+                    defaultKind: "sell",
+                  })
+                }
+                aria-label={`فروش ${investment.name}`}
+                title="فروش"
+              >
+                <ArrowUpLeft className="size-4" />
+              </Button>
+
+              {/* Edit */}
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="rounded-xl"
+                onClick={() =>
+                  setAssetEditor({ investment })
+                }
+                aria-label="ویرایش دارایی"
+                title="ویرایش"
+              >
+                <Edit3 className="size-4" />
+              </Button>
+
+              {/* Delete */}
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="rounded-xl text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                onClick={() =>
+                  setDeleteTarget(investment)
+                }
+                aria-label="حذف دارایی"
+                title="حذف"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+})}
             </div>
           )}
         </section>
