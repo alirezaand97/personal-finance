@@ -52,7 +52,13 @@ export type Investment = {
   updatedAt: string;
 };
 
-export type InvestmentTransactionKind = "buy" | "sell" | "dividend" | "fee";
+
+export type InvestmentTransactionKind =
+  | "buy"
+  | "sell"
+  | "dividend"
+  | "fee"
+  | "initial";
 
 export type InvestmentTransaction = {
   id: string;
