@@ -209,8 +209,8 @@ function getInvestmentMetrics(
   transactions: InvestmentTransaction[],
 ) {
   const rows = transactions.filter((t) => t.investmentId === investment.id);
-  const buyQty = rows
-    .filter((t) => t.kind === "buy")
+   const buyQty = rows
+    .filter((t) => t.kind === "buy" || t.kind === "initial")
     .reduce((s, t) => s + t.quantity, 0);
   const sellQty = rows
     .filter((t) => t.kind === "sell")
@@ -218,7 +218,7 @@ function getInvestmentMetrics(
   const quantity = Math.max(0, buyQty - sellQty);
 
   const buyAmount = rows
-    .filter((t) => t.kind === "buy")
+    .filter((t) => t.kind === "buy" || t.kind === "initial")
     .reduce((s, t) => s + t.amount, 0);
   const sellAmount = rows
     .filter((t) => t.kind === "sell")
@@ -276,6 +276,7 @@ function transactionKindLabel(kind: InvestmentTransactionKind) {
     sell: "فروش",
     dividend: "سود نقدی",
     fee: "کارمزد",
+    initial: "مانده افتتاحیه",
   }[kind];
 }
 
@@ -3485,29 +3486,32 @@ function InvestmentTransactionEditor({
         (t) => t.investmentId === investment.id && t.id !== transaction?.id,
       )
       .reduce((sum, t) => {
-        if (t.kind === "buy") return sum + t.quantity;
+        if (t.kind === "buy" || t.kind === "initial") return sum + t.quantity;
         if (t.kind === "sell") return sum - t.quantity;
         return sum;
       }, 0);
   }, [investmentTransactions, investment.id, transaction]);
 
   useEffect(() => {
-    if (kind === "buy" || kind === "sell") {
+    if (kind === "buy" || kind === "sell" || kind === "initial") {
       const q = Number(quantity);
       const p = Number(unitPrice.replace(/\D/g, ""));
       if (q > 0 && p > 0) setAmount(String(Math.round(q * p)));
     }
   }, [quantity, unitPrice, kind]);
 
-  const save = async () => {
+   const save = async () => {
     const q = Number(quantity.replace(",", "."));
     const p = Number(unitPrice.replace(/\D/g, ""));
     const value =
-      kind === "buy" || kind === "sell"
+      kind === "buy" || kind === "sell" || kind === "initial"
         ? Math.round(q * p)
         : Number(amount.replace(/\D/g, ""));
 
-    if ((kind === "buy" || kind === "sell") && (!q || q <= 0 || !p || p <= 0)) {
+    if (
+      (kind === "buy" || kind === "sell" || kind === "initial") &&
+      (!q || q <= 0 || !p || p <= 0)
+    ) {
       setError("تعداد و قیمت واحد را وارد کنید.");
       return;
     }
@@ -3528,8 +3532,8 @@ function InvestmentTransactionEditor({
     const payload = {
       investmentId: investment.id,
       kind,
-      quantity: kind === "buy" || kind === "sell" ? q : 0,
-      unitPrice: kind === "buy" || kind === "sell" ? p : 0,
+      quantity: kind === "buy" || kind === "sell" || kind === "initial" ? q : 0,
+      unitPrice: kind === "buy" || kind === "sell" || kind === "initial" ? p : 0,
       amount: value,
       date,
       note: note.trim(),
@@ -3550,8 +3554,8 @@ function InvestmentTransactionEditor({
     onClose();
   };
 
-  const isTrade = kind === "buy" || kind === "sell";
-
+  const isTrade = kind === "buy" || kind === "sell" || kind === "initial";
+  
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
@@ -3566,9 +3570,10 @@ function InvestmentTransactionEditor({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
             {(
               [
+                ["initial", "مانده افتتاحیه"],
                 ["buy", "خرید"],
                 ["sell", "فروش"],
                 ["dividend", "سود نقدی"],
@@ -3590,6 +3595,14 @@ function InvestmentTransactionEditor({
               </button>
             ))}
           </div>
+
+          {kind === "initial" && (
+            <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              مانده افتتاحیه برای ثبت دارایی‌هایی است که پیش از استفاده از این
+              سیستم در اختیار داشته‌اید. این تراکنش روی موجودی نقدی شما اثری
+              ندارد.
+            </p>
+          )}
 
           {isTrade ? (
             <div className="grid grid-cols-2 gap-3">
