@@ -3570,27 +3570,28 @@ function InvestmentTransactionEditor({
         </DialogHeader>
 
         <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-2">
+             <div className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {(
               [
-                ["initial", "مانده افتتاحیه"],
-                ["buy", "خرید"],
-                ["sell", "فروش"],
-                ["dividend", "سود نقدی"],
-                ["fee", "کارمزد"],
+                ["initial", "مانده افتتاحیه", Landmark],
+                ["buy", "خرید", ArrowDownLeft],
+                ["sell", "فروش", ArrowUpLeft],
+                ["dividend", "سود نقدی", TrendingUp],
+                ["fee", "کارمزد", ReceiptText],
               ] as const
-            ).map(([id, label]) => (
+            ).map(([id, label, Icon]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setKind(id)}
                 className={cn(
-                  "h-10 rounded-xl text-sm font-medium transition-all",
+                  "flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-medium transition-all",
                   kind === id
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground hover:text-foreground",
                 )}
               >
+                <Icon className="size-3.5" />
                 {label}
               </button>
             ))}
