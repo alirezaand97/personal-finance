@@ -2638,7 +2638,7 @@ function InvestmentsScreen({
             <h2 className="font-bold">دارایی‌های من</h2>
 
             <Button
-              className="mt-5 rounded-sm text-xs!"
+              className="rounded-sm text-xs!"
               variant="outline"
               onClick={() => setAssetEditor({})}
             >
