@@ -112,6 +112,13 @@ export type MarketSyncMeta = {
   id: "market-sync";
   lastSyncedAt: string;
 };
+export type PortfolioSnapshot = {
+  /** تاریخ میلادی به شکل YYYY-MM-DD؛ هر روز فقط یک رکورد */
+  date: string
+  totalValue: number
+  usdPrice: number
+  createdAt: string
+}
 
 export const defaultInvestmentCategories = [
   ["سهام", "stock"],
@@ -183,7 +190,8 @@ class FinanceDB extends Dexie {
   stockSyncMeta!: Table<StockSyncMeta, "stock-sync">;
   marketQuotes!: Table<MarketQuote, string>;
   marketSyncMeta!: Table<MarketSyncMeta, "market-sync">;
-
+  portfolioSnapshots!: Table<PortfolioSnapshot, string>
+  
   constructor() {
     super("hamrah-finance");
 
@@ -288,6 +296,19 @@ class FinanceDB extends Dexie {
           })),
         );
       });
+        this.version(8).stores({
+      transactions: "id, type, date, categoryId, createdAt",
+      categories: "id, type",
+      settings: "id",
+      investments: "id, categoryId, name, symbolId, createdAt",
+      investmentTransactions: "id, investmentId, kind, date, createdAt",
+      investmentCategories: "id, createdAt",
+      stockQuotes: "isin, symbol, name",
+      stockSyncMeta: "id",
+      marketQuotes: "id, market, symbol, name",
+      marketSyncMeta: "id",
+      portfolioSnapshots: "date",
+    })
   }
 }
 
@@ -834,4 +855,32 @@ export async function searchMarketQuotes(
 
 export async function getMarketQuote(id: string) {
   return db.marketQuotes.get(id)
+}
+
+/* ---------------------------------------------------------------------- */
+/*  بخش تاریخچه‌ی ارزش سبد (برای نمودار روند و مقایسه با دلار)             */
+/* ---------------------------------------------------------------------- */
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+/**
+ * ارزش کل سبد و قیمت دلار را برای امروز ذخیره می‌کند. هر روز فقط یک
+ * رکورد دارد؛ اگر امروز قبلاً ذخیره شده باشد، با آخرین مقدار بازنویسی می‌شود.
+ */
+export async function savePortfolioSnapshot(totalValue: number, usdPrice: number) {
+  if (!usdPrice) return
+  await db.portfolioSnapshots.put({
+    date: todayKey(),
+    totalValue,
+    usdPrice,
+    createdAt: new Date().toISOString(),
+  })
+}
+
+/** آخرین N روز از تاریخچه‌ی ارزش سبد را به ترتیب صعودی تاریخ برمی‌گرداند */
+export async function getPortfolioSnapshots(days = 30) {
+  const all = await db.portfolioSnapshots.orderBy("date").toArray()
+  return all.slice(-days)
 }
