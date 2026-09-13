@@ -2437,6 +2437,7 @@ function InvestmentsScreen({
                       innerRadius={42}
                       outerRadius={62}
                       dataKey="value"
+                      nameKey="label"
                       strokeWidth={3}
                     >
                       {byCategory.map((e, i) => (
