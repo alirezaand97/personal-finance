@@ -3573,9 +3573,9 @@ function InvestmentTransactionEditor({
              <div className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {(
               [
-                ["initial", "مانده افتتاحیه", Landmark],
                 ["buy", "خرید", ArrowDownLeft],
                 ["sell", "فروش", ArrowUpLeft],
+                ["initial", "مانده افتتاحیه", Landmark],
                 ["dividend", "سود نقدی", TrendingUp],
                 ["fee", "کارمزد", ReceiptText],
               ] as const
@@ -3585,7 +3585,7 @@ function InvestmentTransactionEditor({
                 type="button"
                 onClick={() => setKind(id)}
                 className={cn(
-                  "flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-medium transition-all",
+                  "flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-sm font-medium transition-all",
                   kind === id
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground hover:text-foreground",
