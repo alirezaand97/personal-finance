@@ -276,6 +276,74 @@ function transactionKindLabel(kind: InvestmentTransactionKind) {
   }[kind];
 }
 
+
+const currencyTickerSymbols = [
+  { symbol: "USD", label: "دلار" },
+  { symbol: "CAD", label: "دلار کانادا" },
+  { symbol: "EUR", label: "یورو" },
+];
+
+const goldTickerSymbols = [
+  { symbol: "IR_GOLD_18K", label: "طلای ۱۸ عیار" },
+  { symbol: "IR_GOLD_24K", label: "طلای ۲۴ عیار" },
+  { symbol: "IR_COIN_1G", label: "سکه یک گرمی" },
+  { symbol: "IR_COIN_QUARTER", label: "ربع سکه" },
+  { symbol: "IR_COIN_HALF", label: "نیم سکه" },
+  { symbol: "IR_COIN_EMAMI", label: "سکه امامی" },
+  { symbol: "IR_COIN_BAHAR", label: "سکه بهار آزادی" },
+];
+
+type TickerItem = {
+  key: string;
+  label: string;
+  price: number;
+  changePercent: number;
+};
+
+function TickerStrip({
+  items,
+  settings,
+}: {
+  items: TickerItem[];
+  settings: AppSettings;
+}) {
+  if (!items.length) return null;
+  return (
+    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {items.map((item) => {
+        const up = item.changePercent >= 0;
+        return (
+          <div
+            key={item.key}
+            className="flex min-w-[8.5rem] shrink-0 flex-col gap-1.5 rounded-2xl border bg-card px-3 py-2.5"
+          >
+            <p className="truncate text-xs text-muted-foreground">
+              {item.label}
+            </p>
+            <p className="text-sm font-bold">
+              {formatMoney(item.price, settings)}
+            </p>
+            <div
+              className={cn(
+                "flex items-center gap-1 text-[11px] font-medium",
+                up ? "text-primary" : "text-rose-600",
+              )}
+            >
+              {up ? (
+                <TrendingUp className="size-3" />
+              ) : (
+                <TrendingDown className="size-3" />
+              )}
+              <span>{Math.abs(item.changePercent).toFixed(2)}٪</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
 type Screen =
   | "home"
   | "transactions"
@@ -2084,6 +2152,24 @@ function InvestmentsScreen({
   const [syncError, setSyncError] = useState("");
   const [lastSync, setLastSync] = useState<string | null>(null);
 
+    const [currencyGoldQuotes, setCurrencyGoldQuotes] = useState<MarketQuote[]>(
+    [],
+  );
+  const [fundQuotes, setFundQuotes] = useState<StockQuote[]>([]);
+
+  const loadTicker = async () => {
+    const ids = [
+      ...currencyTickerSymbols.map((t) => `currency:${t.symbol}`),
+      ...goldTickerSymbols.map((t) => `gold:${t.symbol}`),
+    ];
+    const [marketResults, allStocks] = await Promise.all([
+      db.marketQuotes.bulkGet(ids),
+      db.stockQuotes.toArray(),
+    ]);
+    setCurrencyGoldQuotes(marketResults.filter((q): q is MarketQuote => !!q));
+    setFundQuotes(allStocks.filter((s) => s.name.includes("مفید")));
+  };
+  
   const runSync = async () => {
     setSyncing(true);
     setSyncError("");
@@ -2097,8 +2183,9 @@ function InvestmentsScreen({
         .filter(Boolean)
         .sort()
         .at(-1);
-      setLastSync(latest ?? null);
+     setLastSync(latest ?? null);
       await onRefresh();
+      await loadTicker();
     } catch (e) {
       setSyncError("دریافت قیمت‌ها ناموفق بود. دوباره تلاش کنید.");
     } finally {
@@ -2124,7 +2211,8 @@ function InvestmentsScreen({
     }
   };
 
-  useEffect(() => {
+   useEffect(() => {
+    loadTicker();
     checkAndSync();
     // هر ۵ دقیقه چک می‌کند که آیا یک ساعت از آخرین سینک گذشته؛
     // خودِ needsStockSync مطمئن می‌شود که فقط بین ۸ تا ۲۰ سینک انجام شود
@@ -2210,6 +2298,44 @@ function InvestmentsScreen({
     await onRefresh();
   };
 
+  
+  const tickerItems: TickerItem[] = [
+    ...currencyTickerSymbols
+      .map((t) => {
+        const q = currencyGoldQuotes.find(
+          (q) => q.id === `currency:${t.symbol}`,
+        );
+        return (
+          q && {
+            key: q.id,
+            label: t.label,
+            price: q.price,
+            changePercent: q.changePercent,
+          }
+        );
+      })
+      .filter((x): x is TickerItem => !!x),
+    ...goldTickerSymbols
+      .map((t) => {
+        const q = currencyGoldQuotes.find((q) => q.id === `gold:${t.symbol}`);
+        return (
+          q && {
+            key: q.id,
+            label: t.label,
+            price: q.price,
+            changePercent: q.changePercent,
+          }
+        );
+      })
+      .filter((x): x is TickerItem => !!x),
+    ...fundQuotes.map((f) => ({
+      key: f.isin,
+      label: f.symbol || f.name,
+      price: f.lastPrice,
+      changePercent: f.changePercent,
+    })),
+  ];
+  
   return (
     <>
       <Header
@@ -2363,7 +2489,7 @@ function InvestmentsScreen({
             </CardContent>
           </Card>
         )}
-
+        <TickerStrip items={tickerItems} settings={settings} />
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-bold">دارایی‌های من</h2>
