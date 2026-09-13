@@ -3585,7 +3585,7 @@ function InvestmentTransactionEditor({
                 type="button"
                 onClick={() => setKind(id)}
                 className={cn(
-                  "flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-sm font-medium transition-all",
+                  "flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm! font-medium transition-all",
                   kind === id
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground hover:text-foreground",
