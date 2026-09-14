@@ -164,7 +164,7 @@ export function InvestmentTransactionEditor({
               [
                 ["buy", "خرید", ArrowDownLeft],
                 ["sell", "فروش", ArrowUpLeft],
-                ["initial", "مانده افتتاحیه", Landmark],
+                ["initial", "موجودی اولیه", Landmark],
                 ["dividend", "سود نقدی", TrendingUp],
                 ["fee", "کارمزد", ReceiptText],
               ] as const
@@ -188,7 +188,7 @@ export function InvestmentTransactionEditor({
 
           {kind === "initial" && (
             <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              مانده افتتاحیه برای ثبت دارایی‌هایی است که پیش از استفاده از این
+              موجودی اولیه برای ثبت دارایی‌هایی است که پیش از استفاده از این
               سیستم در اختیار داشته‌اید. این تراکنش روی موجودی نقدی شما اثری
               ندارد.
             </p>

@@ -124,6 +124,26 @@ export type PortfolioSnapshot = {
   createdAt: string
 }
 
+
+export type RecurringBill = {
+  id: string
+  title: string
+  amount: number
+  categoryId: string
+  /** روز سررسید در ماه (۱ تا ۳۱) */
+  dueDay: number
+  note: string
+  active: boolean
+  /** آخرین دوره‌ای (به شکل YYYY-MM) که این قبض پرداخت‌شده ثبت شده */
+  lastPaidPeriod?: string
+  /** تعداد کل اقساط؛ فقط برای وام/اقساط با تعداد مشخص پر می‌شود */
+  totalInstallments?: number
+  /** تعداد اقساطی که تاکنون پرداخت شده */
+  paidInstallments?: number
+  createdAt: string
+  updatedAt: string
+}
+
 export const defaultInvestmentCategories = [
   ["سهام", "stock"],
   ["طلا و سکه", "gold"],
@@ -186,3 +206,4 @@ export const legacyIconMap: Record<string, string> = {
 export type Screen = "home" | "transactions" | "analytics" | "categories" | "settings" | "investments" | "investmentCategories";
 
 export type ChartPoint = { label: string; income: number; expense: number };
+

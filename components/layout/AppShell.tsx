@@ -1,8 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { BottomNav } from "./BottomNav";
+
 import { FinanceProvider, useFinance } from "@/components/providers/FinanceProvider";
+
+import { AppLockGuard } from "../providers/AppLockGuard";
+import { BottomNav } from "./BottomNav";
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { ready } = useFinance();
@@ -18,5 +21,5 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  return <FinanceProvider><Shell>{children}</Shell></FinanceProvider>;
+  return <FinanceProvider><AppLockGuard><Shell>{children}</Shell></AppLockGuard></FinanceProvider>;
 }

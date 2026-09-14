@@ -22,7 +22,10 @@ import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { PersianDatePicker } from "@/components/ui/react-multi-date-picker";
 import { TransactionType, DigitStyle, SeparatorStyle, ThemeMode, ThemePreset, Transaction, Category, InvestmentCategory, InvestmentUnit, Investment, InvestmentTransactionKind, InvestmentTransaction, StockQuote, StockSyncMeta, MarketKind, MarketQuote, MarketSyncMeta, PortfolioSnapshot, defaultInvestmentCategories, AppSettings, expenseCategories, incomeCategories, db, seedDatabase, toFa, formatNumber, formatMoney, monthNames, jalaliLabel, todayIso, startOfCurrentMonth, isSameDay, groupByDate, exportBackup, importBackup, clearAll, getAll, uid, filterPeriod, formatCompact, dayWord, defaultSettings, Screen, ChartPoint, needsStockSync, exactTime, getStockSyncMeta, syncStockQuotes, searchStockQuotes, getStockQuote, getMarketSyncMeta, syncMarketQuotes, searchMarketQuotes, getMarketQuote, savePortfolioSnapshot, getPortfolioSnapshots } from "@/lib/finance";
-
+import Link from "next/link";
+import { Bell } from "lucide-react";
+import { getDueBills, markBillPaid, RecurringBill } from "@/lib/finance";
+import { DueBillsCard } from "@/features/recurring/components/DueBillsCard";
 import { Header } from "@/components/layout/Header";
 import { MiniCard } from "@/components/transactions/MiniCard";
 import { EmptyState } from "@/components/transactions/EmptyState";
@@ -36,17 +39,21 @@ export function Dashboard({
   categories,
   investments,
   investmentTransactions,
+  recurringBills,
   settings,
   onAdd,
   onNavigate,
+  refresh,
 }: {
   transactions: Transaction[];
   categories: Category[];
   investments: Investment[];
   investmentTransactions: InvestmentTransaction[];
+  recurringBills: RecurringBill[];
   settings: AppSettings;
   onAdd: () => void;
   onNavigate: (v: any) => void;
+  refresh: () => Promise<void>;
 }) {
   const current = persianMonthParts(new Date());
   const [month, setMonth] = useState(current.month - 1);
@@ -123,6 +130,16 @@ export function Dashboard({
     } else setMonth(next);
   };
 
+  const dueBills = useMemo(() => getDueBills(recurringBills), [recurringBills]);
+  const activeBillsCount = useMemo(
+    () => recurringBills.filter((b) => b.active).length,
+    [recurringBills],
+  );
+  const handlePayBill = async (bill: RecurringBill) => {
+    await markBillPaid(bill);
+    await refresh();
+  };
+
   return (
     <>
       <Header
@@ -194,7 +211,7 @@ export function Dashboard({
             </div>
           </div>
         </Card>
-
+        <DueBillsCard bills={dueBills} settings={settings} onPay={handlePayBill} />
         <Card
           className="flex cursor-pointer items-center gap-3 p-4"
           role="button"
@@ -212,6 +229,23 @@ export function Dashboard({
           </div>
           <ChevronLeft className="shrink-0 text-muted-foreground" />
         </Card>
+
+          <Link href="/recurring" className="block">
+          <Card className="flex cursor-pointer items-center gap-3 p-4">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Bell className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">قبض‌ها و اقساط</p>
+              <p className="mt-0.5 text-sm font-bold">
+                {activeBillsCount > 0
+                  ? `${activeBillsCount} مورد فعال`
+                  : "مدیریت قبض‌ها و اقساط"}
+              </p>
+            </div>
+            <ChevronLeft className="shrink-0 text-muted-foreground" />
+          </Card>
+        </Link>
 
         <Card className="p-2">
           <div className="flex items-center justify-between">

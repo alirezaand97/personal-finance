@@ -33,7 +33,7 @@ export function formatQuantity(value: number) {
 }
 
 export function transactionKindLabel(kind: InvestmentTransaction["kind"]) {
-  return { buy: "خرید", sell: "فروش", dividend: "سود نقدی", fee: "کارمزد", initial: "مانده افتتاحیه" }[kind];
+  return { buy: "خرید", sell: "فروش", dividend: "سود نقدی", fee: "کارمزد", initial: "موجودی اولیه" }[kind];
 }
 
 export const currencyTickerSymbols = [

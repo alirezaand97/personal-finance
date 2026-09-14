@@ -6,3 +6,4 @@ export * from "./storage";
 export * from "./stocks";
 export * from "./market";
 export * from "./portfolio";
+export * from "./recurring";

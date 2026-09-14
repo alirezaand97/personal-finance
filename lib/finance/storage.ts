@@ -1,5 +1,5 @@
+import type { AppSettings, Category, Investment, InvestmentCategory, InvestmentTransaction, Transaction } from "./types";
 import { db, seedDatabase } from "./db";
-import type { Transaction, Category, AppSettings, Investment, InvestmentTransaction, InvestmentCategory } from "./types";
 
 export async function exportBackup() {
   const payload = {
@@ -11,7 +11,7 @@ export async function exportBackup() {
     investments: await db.investments.toArray(),
     investmentTransactions: await db.investmentTransactions.toArray(),
     investmentCategories: await db.investmentCategories.toArray(),
-  };
+    recurringBills: await db.recurringBills.toArray(),  };
   return JSON.stringify(payload, null, 2);
 }
 
@@ -94,7 +94,7 @@ export async function getAll() {
       .reverse()
       .toArray(),
     investmentCategories: await db.investmentCategories.toArray(),
-  };
+    recurringBills: await db.recurringBills.toArray(),  };
 }
 
 export function uid() {

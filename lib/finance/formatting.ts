@@ -70,3 +70,36 @@ export function groupByDate(items: Transaction[]) {
     return acc;
   }, {});
 }
+
+
+/** سال، ماه و روزِ جلالیِ یک تاریخ را برمی‌گرداند */
+export function persianDateParts(date: string | Date) {
+  const parts = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date(date))
+  return {
+    year: Number(parts.find((p) => p.type === "year")?.value),
+    month: Number(parts.find((p) => p.type === "month")?.value),
+    day: Number(parts.find((p) => p.type === "day")?.value),
+  }
+}
+
+/** تعداد روزهای ماهِ جلالیِ حاوی این تاریخ (۲۹، ۳۰ یا ۳۱) */
+export function persianMonthLength(date: Date = new Date()) {
+  const { day } = persianDateParts(date)
+  const startOfMonth = new Date(date)
+  startOfMonth.setHours(12, 0, 0, 0)
+  startOfMonth.setDate(startOfMonth.getDate() - (day - 1))
+
+  const probeNext = new Date(startOfMonth)
+  probeNext.setDate(probeNext.getDate() + 35)
+  const nextDay = persianDateParts(probeNext).day
+  const startOfNextMonth = new Date(probeNext)
+  startOfNextMonth.setHours(12, 0, 0, 0)
+  startOfNextMonth.setDate(startOfNextMonth.getDate() - (nextDay - 1))
+
+  const diffMs = startOfNextMonth.getTime() - startOfMonth.getTime()
+  return Math.round(diffMs / (24 * 60 * 60 * 1000))
+}

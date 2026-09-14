@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+
+import { AppSettings, Category, Investment, InvestmentCategory, InvestmentTransaction, RecurringBill, defaultSettings, getAll, seedDatabase } from "@/lib/finance";
 import { createContext, useContext, useEffect, useState } from "react";
-import { AppSettings, Category, Investment, InvestmentCategory, InvestmentTransaction, defaultSettings, getAll, seedDatabase } from "@/lib/finance";
 
 type FinanceContextValue = {
   transactions: any[];
@@ -10,6 +11,7 @@ type FinanceContextValue = {
   investments: Investment[];
   investmentTransactions: InvestmentTransaction[];
   investmentCategories: InvestmentCategory[];
+  recurringBills: RecurringBill[];
   settings: AppSettings;
   ready: boolean;
   refresh: () => Promise<void>;
@@ -23,7 +25,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [investmentTransactions, setInvestmentTransactions] = useState<InvestmentTransaction[]>([]);
-  const [investmentCategories, setInvestmentCategories] = useState<InvestmentCategory[]>([]);
+   const [investmentCategories, setInvestmentCategories] = useState<InvestmentCategory[]>([]);
+  const [recurringBills, setRecurringBills] = useState<RecurringBill[]>([]);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [ready, setReady] = useState(false);
 
@@ -33,7 +36,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setCategories(data.categories);
     setInvestments(data.investments);
     setInvestmentTransactions(data.investmentTransactions);
-    setInvestmentCategories(data.investmentCategories);
+      setInvestmentCategories(data.investmentCategories);
+    setRecurringBills(data.recurringBills);
     setSettings(data.settings ?? defaultSettings);
     setReady(true);
   };
@@ -57,8 +61,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     return () => media.removeEventListener("change", applyTheme);
   }, [settings, ready]);
 
-  return <FinanceContext.Provider value={{ transactions, categories, investments, investmentTransactions, investmentCategories, settings, ready, refresh, setSettings }}>{children}</FinanceContext.Provider>;
-}
+  return <FinanceContext.Provider value={{ transactions, categories, investments, investmentTransactions, investmentCategories, recurringBills, settings, ready, refresh, setSettings }}>{children}</FinanceContext.Provider>;}
 
 export function useFinance() {
   const value = useContext(FinanceContext);

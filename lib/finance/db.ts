@@ -12,9 +12,10 @@ import {
   type InvestmentTransaction,
   type StockQuote,
   type StockSyncMeta,
-  type MarketQuote,
+    type MarketQuote,
   type MarketSyncMeta,
   type PortfolioSnapshot,
+  type RecurringBill,
 } from "./types";
 
 class FinanceDB extends Dexie {
@@ -29,7 +30,8 @@ class FinanceDB extends Dexie {
   marketQuotes!: Table<MarketQuote, string>;
   marketSyncMeta!: Table<MarketSyncMeta, "market-sync">;
   portfolioSnapshots!: Table<PortfolioSnapshot, string>
-  
+    recurringBills!: Table<RecurringBill, string>;
+
   constructor() {
     super("hamrah-finance");
 
@@ -146,6 +148,21 @@ class FinanceDB extends Dexie {
       marketQuotes: "id, market, symbol, name",
       marketSyncMeta: "id",
       portfolioSnapshots: "date",
+    })
+
+        this.version(9).stores({
+      transactions: "id, type, date, categoryId, createdAt",
+      categories: "id, type",
+      settings: "id",
+      investments: "id, categoryId, name, symbolId, createdAt",
+      investmentTransactions: "id, investmentId, kind, date, createdAt",
+      investmentCategories: "id, createdAt",
+      stockQuotes: "isin, symbol, name",
+      stockSyncMeta: "id",
+      marketQuotes: "id, market, symbol, name",
+      marketSyncMeta: "id",
+      portfolioSnapshots: "date",
+      recurringBills: "id, categoryId, dueDay, active, createdAt",
     })
   }
 }
