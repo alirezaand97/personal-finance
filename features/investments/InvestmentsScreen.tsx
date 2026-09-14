@@ -618,11 +618,11 @@ export function InvestmentsScreen({
   key={transaction.id}
   className="p-3"
 >
-  {/* Top row */}
   <div className="flex items-center gap-3">
+    {/* Investment icon */}
     <div
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-xl",
+        "flex size-11 shrink-0 items-center justify-center rounded-xl",
         isPositive
           ? "bg-primary/10 text-primary"
           : "bg-rose-500/10 text-rose-600",
@@ -637,12 +637,21 @@ export function InvestmentsScreen({
       )}
     </div>
 
+    {/* Main content */}
     <div className="min-w-0 flex-1">
+      {/* Title */}
       <p className="truncate text-sm font-semibold leading-5">
         {investment.name}
       </p>
+
+      {/* Type + date */}
+      <p className="mt-0.5 text-[11px] text-muted-foreground">
+        {transactionKindLabel(transaction.kind)} ·{" "}
+        {dayWord(transaction.date)}
+      </p>
     </div>
 
+    {/* Amount */}
     <div className="shrink-0 text-left">
       <p
         className={cn(
@@ -653,58 +662,83 @@ export function InvestmentsScreen({
         {isPositive ? "+" : "-"}
         {formatMoney(transaction.amount, settings)}
       </p>
+
+      {/* Percentage / secondary amount */}
+      <p
+        className={cn(
+          "mt-0.5 text-[11px]",
+          isPositive
+            ? "text-primary/80"
+            : "text-rose-600/80",
+        )}
+      >
+        {isPositive ? "+" : "-"}۰٪
+      </p>
     </div>
   </div>
 
   {/* Bottom row */}
-  <div className="mt-2.5 flex items-center gap-2">
-    <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
-      <span className="shrink-0">
-        {transactionKindLabel(transaction.kind)}
-      </span>
-
-      <span className="text-muted-foreground/40">•</span>
-
-      <span className="shrink-0">
-        {dayWord(transaction.date)}
-      </span>
-
-      {(transaction.kind === "buy" ||
-        transaction.kind === "sell") && (
-        <>
-          <span className="text-muted-foreground/40">•</span>
-
-          <span className="truncate">
-            {formatQuantity(transaction.quantity)}{" "}
-            {investmentUnitLabel(investment.unit)}
-          </span>
-        </>
-      )}
-    </div>
-
-    <div className="flex shrink-0 gap-1 items-center">
+  <div className="mt-2 flex items-center justify-between">
+    {/* Actions */}
+    <div className="flex items-center gap-1">
       <Button
         size="icon-sm"
-        variant="ghost"
-        className="size-8 text-muted-foreground"
-        onClick={() =>
-          setTransactionEditor({ investment, transaction })
-        }
-        aria-label="ویرایش تراکنش"
-      >
-        <Edit3 className="size-4" />
-      </Button>
-
-      <Button
-        size="icon-sm"
-        variant="ghost"
-        className="size-8 text-muted-foreground hover:text-rose-600"
+        variant="outline"
+        className="size-7 rounded-lg"
         onClick={() => setDeleteTransactionTarget(transaction)}
         aria-label="حذف تراکنش"
       >
-        <Trash2 className="size-4" />
+        <Trash2 className="size-3.5" />
       </Button>
+
+      <Button
+        size="icon-sm"
+        variant="outline"
+        className="size-7 rounded-lg"
+        onClick={() =>
+          setTransactionEditor({
+            investment,
+            transaction,
+          })
+        }
+        aria-label="ویرایش تراکنش"
+      >
+        <Edit3 className="size-3.5" />
+      </Button>
+
+      {transaction.kind === "sell" && (
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="size-7 rounded-lg text-rose-500"
+          aria-label="فروش"
+        >
+          <ArrowUpLeft className="size-3.5" />
+        </Button>
+      )}
+
+      {transaction.kind === "buy" && (
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="size-7 rounded-lg text-primary"
+          aria-label="خرید"
+        >
+          <ArrowDownLeft className="size-3.5" />
+        </Button>
+      )}
     </div>
+
+    {/* Quantity */}
+    {(transaction.kind === "buy" ||
+      transaction.kind === "sell") && (
+      <div className="text-left text-[11px] text-muted-foreground">
+        <span className="font-semibold text-foreground">
+          {formatQuantity(transaction.quantity)}
+        </span>{" "}
+        {investmentUnitLabel(investment.unit)}
+      </div>
+    )}
   </div>
 </Card>
                 );
