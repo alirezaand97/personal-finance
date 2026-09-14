@@ -682,7 +682,7 @@ export function InvestmentsScreen({
       )}
     </div>
 
-    <div className="flex shrink-0 items-center">
+    <div className="flex shrink-0 gap-1 items-center">
       <Button
         size="icon-sm"
         variant="ghost"
