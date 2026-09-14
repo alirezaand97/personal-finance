@@ -616,77 +616,95 @@ export function InvestmentsScreen({
                 return (
                   <Card
   key={transaction.id}
-  className="flex items-center gap-3 p-3"
+  className="p-3"
 >
-  <div
-    className={cn(
-      "flex size-10 shrink-0 items-center justify-center rounded-xl",
-      isPositive
-        ? "bg-primary/10 text-primary"
-        : "bg-rose-500/10 text-rose-600",
-    )}
-  >
-    {transaction.kind === "buy" ? (
-      <ArrowDownLeft className="size-5" />
-    ) : transaction.kind === "sell" ? (
-      <ArrowUpLeft className="size-5" />
-    ) : (
-      <TrendingUp className="size-5" />
-    )}
+  {/* Top row */}
+  <div className="flex items-center gap-3">
+    <div
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-xl",
+        isPositive
+          ? "bg-primary/10 text-primary"
+          : "bg-rose-500/10 text-rose-600",
+      )}
+    >
+      {transaction.kind === "buy" ? (
+        <ArrowDownLeft className="size-5" />
+      ) : transaction.kind === "sell" ? (
+        <ArrowUpLeft className="size-5" />
+      ) : (
+        <TrendingUp className="size-5" />
+      )}
+    </div>
+
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-sm font-semibold leading-5">
+        {investment.name}
+      </p>
+    </div>
+
+    <div className="shrink-0 text-left">
+      <p
+        className={cn(
+          "text-sm font-bold tabular-nums",
+          isPositive ? "text-primary" : "text-rose-600",
+        )}
+      >
+        {isPositive ? "+" : "-"}
+        {formatMoney(transaction.amount, settings)}
+      </p>
+    </div>
   </div>
 
-  <div className="min-w-0 flex-1">
-    <p className="truncate text-sm font-semibold">
-      {investment.name}
-    </p>
+  {/* Bottom row */}
+  <div className="mt-2.5 flex items-center gap-2">
+    <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
+      <span className="shrink-0">
+        {transactionKindLabel(transaction.kind)}
+      </span>
 
-    <p className="mt-1 text-xs text-muted-foreground">
-      {transactionKindLabel(transaction.kind)} · {dayWord(transaction.date)}
+      <span className="text-muted-foreground/40">•</span>
+
+      <span className="shrink-0">
+        {dayWord(transaction.date)}
+      </span>
+
       {(transaction.kind === "buy" ||
         transaction.kind === "sell") && (
         <>
-          {" · "}
-          {formatQuantity(transaction.quantity)}{" "}
-          {investmentUnitLabel(investment.unit)}
+          <span className="text-muted-foreground/40">•</span>
+
+          <span className="truncate">
+            {formatQuantity(transaction.quantity)}{" "}
+            {investmentUnitLabel(investment.unit)}
+          </span>
         </>
       )}
-    </p>
-  </div>
+    </div>
 
-  <div className="shrink-0 text-left">
-    <p
-      className={cn(
-        "text-sm font-bold tabular-nums",
-        isPositive ? "text-primary" : "text-rose-600",
-      )}
-    >
-      {isPositive ? "+" : "-"}
-      {formatMoney(transaction.amount, settings)}
-    </p>
-  </div>
+    <div className="flex shrink-0 items-center">
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        className="size-8 text-muted-foreground"
+        onClick={() =>
+          setTransactionEditor({ investment, transaction })
+        }
+        aria-label="ویرایش تراکنش"
+      >
+        <Edit3 className="size-4" />
+      </Button>
 
-  <div className="flex shrink-0">
-    <Button
-      size="icon-sm"
-      variant="ghost"
-      className="size-8 text-muted-foreground"
-      onClick={() =>
-        setTransactionEditor({ investment, transaction })
-      }
-      aria-label="ویرایش تراکنش"
-    >
-      <Edit3 className="size-4" />
-    </Button>
-
-    <Button
-      size="icon-sm"
-      variant="ghost"
-      className="size-8 text-muted-foreground hover:text-rose-600"
-      onClick={() => setDeleteTransactionTarget(transaction)}
-      aria-label="حذف تراکنش"
-    >
-      <Trash2 className="size-4" />
-    </Button>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        className="size-8 text-muted-foreground hover:text-rose-600"
+        onClick={() => setDeleteTransactionTarget(transaction)}
+        aria-label="حذف تراکنش"
+      >
+        <Trash2 className="size-4" />
+      </Button>
+    </div>
   </div>
 </Card>
                 );
