@@ -16,10 +16,16 @@ import {
   ShieldCheck,
   Trash2,
   TrendingUp,
-  Wallet
+  Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   disableAppLock,
   hasBiometric,
@@ -98,16 +104,21 @@ export function SettingsScreen({
   };
 
   const enableBiometric = async () => {
-    setSecurityError("");
-    try {
-      await registerBiometric();
-      setBiometricEnabled(true);
-    } catch {
-      setSecurityError(
-        "فعال‌سازی اثر انگشت/چهره ناموفق بود. مطمئن شوید دستگاه شما این قابلیت را پشتیبانی می‌کند.",
-      );
-    }
-  };
+  setSecurityError("");
+
+  try {
+    await registerBiometric();
+    setBiometricEnabled(true);
+  } catch (error) {
+    console.error(error);
+
+    setSecurityError(
+      error instanceof Error
+        ? error.message
+        : "فعال‌سازی بیومتریک ناموفق بود."
+    );
+  }
+};
 
   const turnOffLock = () => {
     disableAppLock();
