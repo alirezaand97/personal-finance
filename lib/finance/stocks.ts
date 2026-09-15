@@ -1,5 +1,6 @@
+import type { DigitStyle, StockQuote } from "./types";
+
 import { db } from "./db";
-import type { StockQuote, DigitStyle } from "./types";
 import { toFa } from "./formatting";
 
 /*  بخش قیمت زنده سهام (Stock Quotes)                                     */
@@ -14,11 +15,14 @@ import { toFa } from "./formatting";
 export function needsStockSync(lastSyncedAt?: string) {
   const now = new Date()
   const hour = now.getHours()
+  
+  // فقط در ساعات بازار (اختیاری - اگر می‌خوای همیشه آپدیت بشه این شرط رو بردار)
   if (hour < 8 || hour >= 20) return false
 
   if (!lastSyncedAt) return true
+  
   const diffMs = now.getTime() - new Date(lastSyncedAt).getTime()
-  return diffMs >= 60 * 60 * 1000
+  return diffMs >= 2 * 60 * 1000   // ← ۵ دقیقه
 }
 
 export function exactTime(iso: string, style: DigitStyle = "fa") {

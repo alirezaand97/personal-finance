@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 const CACHE_KEY = "market:quotes"
 const LOCK_KEY = "lock:market:quotes"
 
-const FRESH_TTL = 60 * 1          // ۱۰ دقیقه
+const FRESH_TTL = 60 * 2          // ۱۰ دقیقه
 const MAX_STALE_TTL = 60 * 60      // ۱ ساعت
 const LOCK_TTL = 15
 
