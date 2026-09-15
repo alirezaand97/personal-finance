@@ -27,7 +27,7 @@ export function TickerStrip({
   items,
   settings,
 }: {
-  items: TickerItem[];
+  items: any[];
   settings: AppSettings;
 }) {
   if (!items.length) return null;

@@ -111,10 +111,13 @@ export function InvestmentsScreen({
   };
 
   const checkAndSync = async () => {
+    console.log('STart Get Prices')
     const [stockMeta, marketMeta] = await Promise.all([
       getStockSyncMeta(),
       getMarketSyncMeta(),
     ]);
+    console.log(' Prices Are Gotten')
+
     const latest = [stockMeta?.lastSyncedAt, marketMeta?.lastSyncedAt]
       .filter(Boolean)
       .sort()
@@ -134,7 +137,7 @@ export function InvestmentsScreen({
     checkAndSync();
     // هر ۵ دقیقه چک می‌کند که آیا یک ساعت از آخرین سینک گذشته؛
     // خودِ needsStockSync مطمئن می‌شود که فقط بین ۸ تا ۲۰ سینک انجام شود
-    const interval = setInterval(checkAndSync, 5 * 60 * 1000);
+    const interval = setInterval(checkAndSync, 2 * 60 * 1000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -224,7 +227,7 @@ export function InvestmentsScreen({
   };
 
   
-  const tickerItems: TickerItem[] = [
+  const tickerItems: any[] = [
     ...currencyTickerSymbols
       .map((t) => {
         const q = currencyGoldQuotes.find(
@@ -239,7 +242,7 @@ export function InvestmentsScreen({
           }
         );
       })
-      .filter((x): x is TickerItem => !!x),
+      .filter((x): x is any => !!x),
     ...goldTickerSymbols
       .map((t) => {
         const q = currencyGoldQuotes.find((q) => q.id === `gold:${t.symbol}`);
@@ -252,7 +255,7 @@ export function InvestmentsScreen({
           }
         );
       })
-      .filter((x): x is TickerItem => !!x),
+      .filter((x): x is any => !!x),
     ...fundQuotes.map((f) => ({
       key: f.isin,
       label: f.symbol || f.name,
@@ -293,7 +296,7 @@ export function InvestmentsScreen({
             <p className="text-xs font-medium">قیمت‌های زنده</p>{" "}
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
               {syncing
-                ? "در حال دریافت قیمت‌ها..."
+                ? "در حال به‌روزرسانی قیمت‌ها..."
                 : lastSync
                   ? `آخرین به‌روزرسانی: ${dayWord(lastSync)} ساعت ${exactTime(lastSync, settings.digitStyle)}`
                   : "هنوز به‌روزرسانی نشده"}
