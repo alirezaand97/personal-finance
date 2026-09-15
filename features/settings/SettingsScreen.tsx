@@ -130,70 +130,9 @@ export function SettingsScreen({
     <>
       <Header title="تنظیمات" />
       <div className="flex flex-col gap-4 px-4 pb-28">
-        <SettingsSection title="ظاهر برنامه">
-          <SettingRow label="حالت نمایش">
-            <Select
-              value={settings.mode}
-              onValueChange={(v) => update({ mode: v as AppSettings["mode"] })}
-              options={[
-                { value: "system", label: "سیستم", icon: Settings },
-                { value: "light", label: "روشن", icon: Wallet },
-                { value: "dark", label: "تیره", icon: Moon },
-              ]}
-              className="w-32"
-            />
-          </SettingRow>
-          <SettingRow label="رنگ برنامه">
-            <Select
-              value={settings.preset}
-              onValueChange={(v) =>
-                update({ preset: v as AppSettings["preset"] })
-              }
-              options={[
-                { value: "default", label: "خنثی", icon: Package },
-                { value: "green", label: "سبز مالی", icon: TrendingUp },
-                { value: "blue", label: "آبی آرام", icon: Plane },
-              ]}
-              className="w-32"
-            />
-          </SettingRow>
-        </SettingsSection>
+        
 
-        <SettingsSection title="نمایش اعداد">
-          <SettingRow label="رقم‌ها">
-            <Select
-              value={settings.digitStyle}
-              onValueChange={(v) =>
-                update({ digitStyle: v as AppSettings["digitStyle"] })
-              }
-              options={[
-                { value: "fa", label: "فارسی ۱۲۳", icon: ArrowDownLeft },
-                { value: "en", label: "لاتین 123", icon: ArrowUpLeft },
-              ]}
-              className="w-32"
-            />
-          </SettingRow>
-          <SettingRow label="جداکننده اعداد">
-            <Select
-              value={settings.separatorStyle}
-              onValueChange={(v) =>
-                update({ separatorStyle: v as AppSettings["separatorStyle"] })
-              }
-              options={[
-                { value: "persian", label: "۱۲٬۳۴۵", icon: ReceiptText },
-                { value: "comma", label: "12,345", icon: ReceiptText },
-              ]}
-              className="w-32"
-            />
-          </SettingRow>
-          <SettingRow label="واحد پول">
-            <Input
-              value={settings.currency}
-              onChange={(e) => update({ currency: e.target.value })}
-              className="h-9 w-24 text-left"
-            />
-          </SettingRow>
-        </SettingsSection>
+        
 
         <SettingsSection title="امنیت و قفل برنامه">
           <SettingRow label="قفل با کد پین">
