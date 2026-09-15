@@ -1,33 +1,154 @@
 import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowDownLeft, ArrowUpLeft, BarChart3, BriefcaseBusiness, CarFront,
-  ChevronLeft, ChevronRight, Download, Edit3, FileUp, Gamepad2, Gift,
-  HeartPulse, Home, House, Laptop, MoreHorizontal, Moon, Package, Plane,
-  Plus, ReceiptText, RefreshCw, Search, Settings, ShoppingBag, Trash2,
-  TrendingUp, Trophy, Utensils, Wallet, X, Tags, TrendingDown, Repeat,
-  Landmark, Gem, Bitcoin, Banknote, ArrowLeftRight, type LucideIcon,
+  ArrowDownLeft,
+  ArrowUpLeft,
+  BarChart3,
+  BriefcaseBusiness,
+  CarFront,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Edit3,
+  FileUp,
+  Gamepad2,
+  Gift,
+  HeartPulse,
+  Home,
+  House,
+  Laptop,
+  MoreHorizontal,
+  Moon,
+  Package,
+  Plane,
+  Plus,
+  ReceiptText,
+  RefreshCw,
+  Search,
+  Settings,
+  ShoppingBag,
+  Trash2,
+  TrendingUp,
+  Trophy,
+  Utensils,
+  Wallet,
+  X,
+  Tags,
+  TrendingDown,
+  Repeat,
+  Landmark,
+  Gem,
+  Bitcoin,
+  Banknote,
+  ArrowLeftRight,
+  type LucideIcon,
 } from "lucide-react";
 import {
-  Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { PersianDatePicker } from "@/components/ui/react-multi-date-picker";
-import { TransactionType, DigitStyle, SeparatorStyle, ThemeMode, ThemePreset, Transaction, Category, InvestmentCategory, InvestmentUnit, Investment, InvestmentTransactionKind, InvestmentTransaction, StockQuote, StockSyncMeta, MarketKind, MarketQuote, MarketSyncMeta, PortfolioSnapshot, defaultInvestmentCategories, AppSettings, expenseCategories, incomeCategories, db, seedDatabase, toFa, formatNumber, formatMoney, monthNames, jalaliLabel, todayIso, startOfCurrentMonth, isSameDay, groupByDate, exportBackup, importBackup, clearAll, getAll, uid, filterPeriod, formatCompact, dayWord, defaultSettings, Screen, ChartPoint, needsStockSync, exactTime, getStockSyncMeta, syncStockQuotes, searchStockQuotes, getStockQuote, getMarketSyncMeta, syncMarketQuotes, searchMarketQuotes, getMarketQuote, savePortfolioSnapshot, getPortfolioSnapshots } from "@/lib/finance";
+import {
+  TransactionType,
+  DigitStyle,
+  SeparatorStyle,
+  ThemeMode,
+  ThemePreset,
+  Transaction,
+  Category,
+  InvestmentCategory,
+  InvestmentUnit,
+  Investment,
+  InvestmentTransactionKind,
+  InvestmentTransaction,
+  StockQuote,
+  StockSyncMeta,
+  MarketKind,
+  MarketQuote,
+  MarketSyncMeta,
+  PortfolioSnapshot,
+  defaultInvestmentCategories,
+  AppSettings,
+  expenseCategories,
+  incomeCategories,
+  db,
+  seedDatabase,
+  toFa,
+  formatNumber,
+  formatMoney,
+  monthNames,
+  jalaliLabel,
+  todayIso,
+  startOfCurrentMonth,
+  isSameDay,
+  groupByDate,
+  exportBackup,
+  importBackup,
+  clearAll,
+  getAll,
+  uid,
+  filterPeriod,
+  formatCompact,
+  dayWord,
+  defaultSettings,
+  Screen,
+  ChartPoint,
+  needsStockSync,
+  exactTime,
+  getStockSyncMeta,
+  syncStockQuotes,
+  searchStockQuotes,
+  getStockQuote,
+  getMarketSyncMeta,
+  syncMarketQuotes,
+  searchMarketQuotes,
+  getMarketQuote,
+  savePortfolioSnapshot,
+  getPortfolioSnapshots,
+} from "@/lib/finance";
 
 import { Header } from "@/components/layout/Header";
 import { CategoryIcon } from "@/components/common/CategoryIcon";
 import { TickerStrip } from "@/features/investments/components/TickerStrip";
 import { PortfolioTrendCard } from "@/features/investments/components/PortfolioTrendCard";
-import { getInvestmentMetrics, investmentUnitLabel, formatQuantity, transactionKindLabel, currencyTickerSymbols, goldTickerSymbols } from "@/features/investments/utils";
+import {
+  getInvestmentMetrics,
+  investmentUnitLabel,
+  formatQuantity,
+  transactionKindLabel,
+  currencyTickerSymbols,
+  goldTickerSymbols,
+} from "@/features/investments/utils";
 import { chartColors } from "@/lib/chart";
 import { InvestmentAssetEditor } from "@/features/investments/InvestmentAssetEditor";
 import { InvestmentTransactionEditor } from "@/features/investments/InvestmentTransactionEditor";
@@ -62,7 +183,7 @@ export function InvestmentsScreen({
   const [syncError, setSyncError] = useState("");
   const [lastSync, setLastSync] = useState<string | null>(null);
 
-    const [currencyGoldQuotes, setCurrencyGoldQuotes] = useState<MarketQuote[]>(
+  const [currencyGoldQuotes, setCurrencyGoldQuotes] = useState<MarketQuote[]>(
     [],
   );
   const [fundQuotes, setFundQuotes] = useState<StockQuote[]>([]);
@@ -86,7 +207,7 @@ export function InvestmentsScreen({
     const data = await getPortfolioSnapshots(30);
     setSnapshots(data);
   };
-  
+
   const runSync = async () => {
     setSyncing(true);
     setSyncError("");
@@ -100,7 +221,7 @@ export function InvestmentsScreen({
         .filter(Boolean)
         .sort()
         .at(-1);
-     setLastSync(latest ?? null);
+      setLastSync(latest ?? null);
       await onRefresh();
       await loadTicker();
     } catch (e) {
@@ -111,28 +232,43 @@ export function InvestmentsScreen({
   };
 
   const checkAndSync = async () => {
-    console.log('STart Get Prices')
+    console.log("🔄 checkAndSync اجرا شد", new Date().toLocaleTimeString());
+
     const [stockMeta, marketMeta] = await Promise.all([
       getStockSyncMeta(),
       getMarketSyncMeta(),
     ]);
-    console.log(' Prices Are Gotten')
+
+    console.log("آخرین سینک سهام:", stockMeta?.lastSyncedAt);
+    console.log("آخرین سینک مارکت:", marketMeta?.lastSyncedAt);
+    console.log(
+      "needsStockSync سهام:",
+      needsStockSync(stockMeta?.lastSyncedAt),
+    );
+    console.log(
+      "needsStockSync مارکت:",
+      needsStockSync(marketMeta?.lastSyncedAt),
+    );
 
     const latest = [stockMeta?.lastSyncedAt, marketMeta?.lastSyncedAt]
       .filter(Boolean)
       .sort()
       .at(-1);
     setLastSync(latest ?? null);
+
     if (
       needsStockSync(stockMeta?.lastSyncedAt) ||
       needsStockSync(marketMeta?.lastSyncedAt)
     ) {
+      console.log("✅ شرط برقرار شد → دارم سینک می‌کنم");
       await runSync();
+    } else {
+      console.log("❌ شرط برقرار نشد → سینک نمی‌کنم");
     }
   };
 
-   useEffect(() => {
- loadTicker();
+  useEffect(() => {
+    loadTicker();
     loadSnapshots();
     checkAndSync();
     // هر ۵ دقیقه چک می‌کند که آیا یک ساعت از آخرین سینک گذشته؛
@@ -162,7 +298,7 @@ export function InvestmentsScreen({
   const totalProfitPercent =
     totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0;
 
-    useEffect(() => {
+  useEffect(() => {
     const usd = currencyGoldQuotes.find((q) => q.id === "currency:USD");
     if (!usd || totalValue <= 0) return;
     savePortfolioSnapshot(totalValue, usd.price).then(loadSnapshots);
@@ -226,7 +362,6 @@ export function InvestmentsScreen({
     await onRefresh();
   };
 
-  
   const tickerItems: any[] = [
     ...currencyTickerSymbols
       .map((t) => {
@@ -263,7 +398,7 @@ export function InvestmentsScreen({
       changePercent: f.changePercent,
     })),
   ];
-  
+
   return (
     <>
       <Header
@@ -293,7 +428,6 @@ export function InvestmentsScreen({
       <div className="flex flex-col gap-4 px-4 pb-28">
         <div className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2">
           <div className="min-w-0">
-            <p className="text-xs font-medium">قیمت‌های زنده</p>{" "}
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
               {syncing
                 ? "در حال به‌روزرسانی قیمت‌ها..."
@@ -418,7 +552,7 @@ export function InvestmentsScreen({
             </CardContent>
           </Card>
         )}
-                <PortfolioTrendCard snapshots={snapshots} settings={settings} />
+        <PortfolioTrendCard snapshots={snapshots} settings={settings} />
         <TickerStrip items={tickerItems} settings={settings} />
         <section>
           <div className="mb-3 flex items-center justify-between">
@@ -617,7 +751,78 @@ export function InvestmentsScreen({
                   transaction.kind === "dividend";
 
                 return (
-                 <Card key={transaction.id} className="flex items-center gap-3 p-3" > <div className={cn( "flex size-10 shrink-0 items-center justify-center rounded-xl", isPositive ? "bg-primary/10 text-primary" : "bg-rose-500/10 text-rose-600", )} > {transaction.kind === "buy" ? ( <ArrowDownLeft className="size-5" /> ) : transaction.kind === "sell" ? ( <ArrowUpLeft className="size-5" /> ) : ( <TrendingUp className="size-5" /> )} </div> <div className="min-w-0 flex-1"> <p className="truncate text-sm! font-medium"> {investment.name} </p> <p className="mt-0.5 text-xs text-muted-foreground"> {transactionKindLabel(transaction.kind)} ·{" "} {dayWord(transaction.date)} </p> </div> <div className="text-left"> <p className={cn( "text-sm! font-medium!", isPositive ? "text-primary" : "text-rose-600", )} > {formatMoney(transaction.amount, settings)} </p> <p className="mt-0.5 text-[11px] text-muted-foreground"> {formatQuantity(transaction.quantity)}{" "} {investmentUnitLabel(investment.unit)} </p> </div> <Button size="icon-sm" variant="ghost" onClick={() => setTransactionEditor({ investment, transaction }) } aria-label="ویرایش تراکنش" > <Edit3 /> </Button> <Button size="icon-sm" variant="ghost" onClick={() => setDeleteTransactionTarget(transaction)} aria-label="حذف تراکنش" > <Trash2 /> </Button> </Card>
+                  <Card
+                    key={transaction.id}
+                    className="flex items-center gap-3 p-3"
+                  >
+                    {" "}
+                    <div
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                        isPositive
+                          ? "bg-primary/10 text-primary"
+                          : "bg-rose-500/10 text-rose-600",
+                      )}
+                    >
+                      {" "}
+                      {transaction.kind === "buy" ? (
+                        <ArrowDownLeft className="size-5" />
+                      ) : transaction.kind === "sell" ? (
+                        <ArrowUpLeft className="size-5" />
+                      ) : (
+                        <TrendingUp className="size-5" />
+                      )}{" "}
+                    </div>{" "}
+                    <div className="min-w-0 flex-1">
+                      {" "}
+                      <p className="truncate text-sm! font-medium">
+                        {" "}
+                        {investment.name}{" "}
+                      </p>{" "}
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {" "}
+                        {transactionKindLabel(transaction.kind)} ·{" "}
+                        {dayWord(transaction.date)}{" "}
+                      </p>{" "}
+                    </div>{" "}
+                    <div className="text-left">
+                      {" "}
+                      <p
+                        className={cn(
+                          "text-sm! font-medium!",
+                          isPositive ? "text-primary" : "text-rose-600",
+                        )}
+                      >
+                        {" "}
+                        {formatMoney(transaction.amount, settings)}{" "}
+                      </p>{" "}
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {" "}
+                        {formatQuantity(transaction.quantity)}{" "}
+                        {investmentUnitLabel(investment.unit)}{" "}
+                      </p>{" "}
+                    </div>{" "}
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setTransactionEditor({ investment, transaction })
+                      }
+                      aria-label="ویرایش تراکنش"
+                    >
+                      {" "}
+                      <Edit3 />{" "}
+                    </Button>{" "}
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => setDeleteTransactionTarget(transaction)}
+                      aria-label="حذف تراکنش"
+                    >
+                      {" "}
+                      <Trash2 />{" "}
+                    </Button>{" "}
+                  </Card>
                 );
               })}
             </div>
