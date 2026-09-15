@@ -17,7 +17,7 @@ export function needsStockSync(lastSyncedAt?: string) {
   const hour = now.getHours()
   
   // فقط در ساعات بازار (اختیاری - اگر می‌خوای همیشه آپدیت بشه این شرط رو بردار)
-  if (hour < 8 || hour >= 20) return false
+//  if (hour < 8 || hour >= 20) return false
 
   if (!lastSyncedAt) return true
   
