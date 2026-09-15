@@ -28,10 +28,7 @@ async function sha256Hex(text: string) {
 function bufToBase64Url(buf: ArrayBuffer) {
   let binary = "";
   new Uint8Array(buf).forEach((b) => (binary += String.fromCharCode(b)));
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function base64UrlToBuf(b64url: string) {
@@ -102,86 +99,33 @@ export async function isBiometricAvailable() {
 
 /** ثبت اثرانگشت/چهره‌ی کاربر برای این دستگاه/مرورگر */
 export async function registerBiometric() {
-  if (!window.isSecureContext) {
-    throw new Error(
-      "WebAuthn فقط در محیط امن HTTPS یا localhost قابل استفاده است.",
-    );
-  }
-
-  if (!window.PublicKeyCredential) {
-    throw new Error("مرورگر از WebAuthn پشتیبانی نمی‌کند.");
-  }
-
-  const available = await (
-    window.PublicKeyCredential as typeof PublicKeyCredential & {
-      isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean>;
-    }
-  ).isUserVerifyingPlatformAuthenticatorAvailable?.();
-
-  if (!available) {
-    throw new Error("احراز هویت بیومتریک پلتفرم روی این دستگاه در دسترس نیست.");
-  }
-
-  try {
-    const credential = (await navigator.credentials.create({
-      publicKey: {
-        challenge: crypto.getRandomValues(new Uint8Array(32)),
-
-        rp: {
-          name: "همراه مالی",
-        },
-
-        user: {
-          id: crypto.getRandomValues(new Uint8Array(16)),
-          name: "hamrah-finance-user",
-          displayName: "کاربر همراه مالی",
-        },
-
-        pubKeyCredParams: [
-          {
-            type: "public-key",
-            alg: -7,
-          },
-          {
-            type: "public-key",
-            alg: -257,
-          },
-        ],
-
-        authenticatorSelection: {
-          authenticatorAttachment: "platform",
-          userVerification: "required",
-          residentKey: "preferred",
-        },
-
-        timeout: 60000,
-        attestation: "none",
+  const credential = (await navigator.credentials.create({
+    publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: { name: "همراه مالی" },
+      user: {
+        id: crypto.getRandomValues(new Uint8Array(16)),
+        name: "hamrah-finance-user",
+        displayName: "کاربر همراه مالی",
       },
-    })) as PublicKeyCredential | null;
+      pubKeyCredParams: [
+        { type: "public-key", alg: -7 }, // ES256
+        { type: "public-key", alg: -257 }, // RS256
+      ],
+      authenticatorSelection: {
+        authenticatorAttachment: "platform",
+        userVerification: "required",
+        residentKey: "preferred",
+      },
+      timeout: 60000,
+      attestation: "none",
+    },
+  })) as PublicKeyCredential | null;
 
-    if (!credential) {
-      throw new Error("Credential ساخته نشد.");
-    }
+  if (!credential) throw new Error("ثبت بیومتریک ناموفق بود");
 
-    localStorage.setItem(BIOMETRIC_ID_KEY, bufToBase64Url(credential.rawId));
-
-    localStorage.setItem(ENABLED_KEY, "1");
-
-    return true;
-  } catch (error) {
-    console.error("WebAuthn registration failed:", error);
-
-    if (error instanceof DOMException) {
-      console.error("WebAuthn error:", {
-        name: error.name,
-        message: error.message,
-      });
-
-      throw new Error(`${error.name}: ${error.message}`);
-    }
-
-    throw error;
-  }
+  localStorage.setItem(BIOMETRIC_ID_KEY, bufToBase64Url(credential.rawId));
+  localStorage.setItem(ENABLED_KEY, "1");
 }
 
 /** درخواست تایید هویت با اثرانگشت/چهره؛ true اگر موفق بود */
@@ -192,7 +136,9 @@ export async function verifyBiometric() {
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
-        allowCredentials: [{ id: base64UrlToBuf(id), type: "public-key" }],
+        allowCredentials: [
+          { id: base64UrlToBuf(id), type: "public-key" },
+        ],
         userVerification: "required",
         timeout: 60000,
       },
@@ -206,4 +152,25 @@ export async function verifyBiometric() {
 
 export function removeBiometric() {
   localStorage.removeItem(BIOMETRIC_ID_KEY);
+}
+
+/**
+ * قفل بودنِ session فعلی (نه هر رفرش).
+ * از sessionStorage استفاده می‌کنیم: با رفرش صفحه پاک نمی‌شود، اما با
+ * بسته‌شدن تب/مرورگر پاک می‌شود — یعنی دفعه‌ی بعد که کاربر واقعاً «وارد»
+ * برنامه می‌شود، دوباره قفل نشان داده خواهد شد.
+ */
+const SESSION_UNLOCK_KEY = "hamrah:lock:session-unlocked";
+
+export function hasUnlockedThisSession() {
+  if (typeof window === "undefined") return false;
+  return sessionStorage.getItem(SESSION_UNLOCK_KEY) === "1";
+}
+
+export function markUnlockedThisSession() {
+  sessionStorage.setItem(SESSION_UNLOCK_KEY, "1");
+}
+
+export function clearSessionUnlock() {
+  sessionStorage.removeItem(SESSION_UNLOCK_KEY);
 }
