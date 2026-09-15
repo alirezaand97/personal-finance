@@ -238,8 +238,8 @@ export async function seedDatabase() {
         digitStyle: "fa",
         separatorStyle: "persian",
         currency: "تومان",
-        mode: "system",
-        preset: "green",
+        mode: "light",
+        preset: "blue",
       });
     },
   );
