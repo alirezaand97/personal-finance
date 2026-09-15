@@ -54,6 +54,6 @@ export const defaultSettings: AppSettings = {
   digitStyle: "fa",
   separatorStyle: "persian",
   currency: "تومان",
-  mode: "system",
-  preset: "green",
+  mode: "light",
+  preset: "blue",
 };
