@@ -3,67 +3,111 @@
   viewBox="0 0 640 640"
 >
   <defs>
-    <linearGradient id="background" x1="80" y1="60" x2="570" y2="600">
-      <stop offset="0%" stop-color="oklch(0.66 0.20 258)" />
-      <stop offset="45%" stop-color="oklch(0.55 0.21 260)" />
-      <stop offset="100%" stop-color="oklch(0.43 0.20 268)" />
+    <linearGradient
+      id="bg"
+      x1="70"
+      y1="50"
+      x2="570"
+      y2="590"
+    >
+      <stop offset="0%" stop-color="#6B9BFF"/>
+      <stop offset="48%" stop-color="#416FE8"/>
+      <stop offset="100%" stop-color="#294BC5"/>
     </linearGradient>
 
-    <radialGradient id="glow" cx="50%" cy="42%" r="55%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.22" />
-      <stop offset="100%" stop-color="white" stop-opacity="0" />
-    </radialGradient>
-
-    <filter
-      id="shadow"
-      x="-40%"
-      y="-40%"
-      width="180%"
-      height="180%"
+    <linearGradient
+      id="mark"
+      x1="170"
+      y1="450"
+      x2="470"
+      y2="210"
     >
-      <feDropShadow
-        dx="0"
-        dy="18"
-        stdDeviation="18"
-        flood-color="#000"
-        flood-opacity="0.22"
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E9EFFF"/>
+    </linearGradient>
+
+    <radialGradient
+      id="glow"
+      cx="50%"
+      cy="30%"
+      r="72%"
+    >
+      <stop
+        offset="0%"
+        stop-color="#FFFFFF"
+        stop-opacity=".18"
       />
-    </filter>
+      <stop
+        offset="100%"
+        stop-color="#FFFFFF"
+        stop-opacity="0"
+      />
+    </radialGradient>
   </defs>
 
-  <!-- App background -->
+  <!-- Background -->
   <rect
     x="24"
     y="24"
     width="592"
     height="592"
-    rx="152"
-    fill="url(#background)"
+    rx="150"
+    fill="url(#bg)"
   />
 
   <!-- Soft glow -->
   <circle
     cx="320"
-    cy="300"
-    r="245"
+    cy="245"
+    r="270"
     fill="url(#glow)"
   />
 
-  <!-- Wallet -->
-  <g
-    transform="translate(96 96) scale(0.7)"
-    filter="url(#shadow)"
-  >
-    <path
-      fill="white"
-      d="M128 96C92.7 96 64 124.7 64 160L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 256C576 220.7 547.3 192 512 192L136 192C122.7 192 112 181.3 112 168C112 154.7 122.7 144 136 144L520 144C533.3 144 544 133.3 544 120C544 106.7 533.3 96 520 96L128 96zM480 320C497.7 320 512 334.3 512 352C512 369.7 497.7 384 480 384C462.3 384 448 369.7 448 352C448 334.3 462.3 320 480 320z"
-    />
+  <!-- Main mark -->
+  <path
+    d="
+      M168 426
+      L268 326
+      L340 398
+      L468 270
+    "
+    fill="none"
+    stroke="url(#mark)"
+    stroke-width="58"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 
-    <!-- subtle wallet highlight -->
-    <path
-      d="M128 112H510C524 112 534 122 534 136C534 145 527 152 518 152H136C118 152 104 164 104 180V160C104 133 104 112 128 112Z"
-      fill="white"
-      opacity="0.18"
-    />
-  </g>
+  <!-- Inner flow -->
+  <path
+    d="
+      M208 426
+      L268 366
+      L316 414
+    "
+    fill="none"
+    stroke="#416FE8"
+    stroke-width="16"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity=".28"
+  />
+
+  <!-- Small investment dot -->
+  <circle
+    cx="468"
+    cy="270"
+    r="17"
+    fill="#FFFFFF"
+  />
+
+  <!-- Subtle bottom balance -->
+  <path
+    d="M168 470H410"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="12"
+    stroke-linecap="round"
+    opacity=".12"
+  />
 </svg>
