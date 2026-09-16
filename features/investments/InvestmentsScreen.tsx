@@ -29,12 +29,12 @@ import {
   ShoppingBag,
   Trash2,
   TrendingUp,
+  TrendingDown,
   Trophy,
   Utensils,
   Wallet,
   X,
   Tags,
-  TrendingDown,
   Repeat,
   Landmark,
   Gem,
@@ -191,6 +191,10 @@ export function InvestmentsScreen({
   const [detailInvestment, setDetailInvestment] = useState<Investment | null>(
     null,
   );
+  // symbolId -> درصد تغییر قیمت همون روز (فقط برای دارایی‌های زنده)
+  const [liveChangeMap, setLiveChangeMap] = useState<Map<string, number>>(
+    new Map(),
+  );
 
   const loadTicker = async () => {
     const ids = [
@@ -203,6 +207,40 @@ export function InvestmentsScreen({
     ]);
     setCurrencyGoldQuotes(marketResults.filter((q): q is MarketQuote => !!q));
     setFundQuotes(allStocks.filter((s) => s.name.includes("مفید")));
+  };
+
+  // برای هر دارایی‌ای که به یک نماد زنده وصله (symbolId داره)، درصد تغییر
+  // قیمت همون روز رو از کش قیمت‌ها (stockQuotes/marketQuotes) می‌خونه.
+  // این کاملاً جدا از سود/زیانِ «از زمان خرید» است که از تراکنش‌های
+  // خرید/فروش خودِ کاربر محاسبه می‌شود.
+  const loadLiveChanges = async () => {
+    const symbolIds = investments
+      .map((i) => i.symbolId)
+      .filter((id): id is string => !!id);
+
+    if (!symbolIds.length) {
+      setLiveChangeMap(new Map());
+      return;
+    }
+
+    const stockIds = symbolIds.filter((id) => !id.includes(":"));
+    const marketIds = symbolIds.filter((id) => id.includes(":"));
+
+    const [stocks, markets] = await Promise.all([
+      stockIds.length ? db.stockQuotes.bulkGet(stockIds) : Promise.resolve([]),
+      marketIds.length
+        ? db.marketQuotes.bulkGet(marketIds)
+        : Promise.resolve([]),
+    ]);
+
+    const map = new Map<string, number>();
+    stocks.forEach((q, idx) => {
+      if (q) map.set(stockIds[idx], q.changePercent);
+    });
+    markets.forEach((q, idx) => {
+      if (q) map.set(marketIds[idx], q.changePercent);
+    });
+    setLiveChangeMap(map);
   };
 
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
@@ -228,6 +266,7 @@ export function InvestmentsScreen({
       setLastSync(latest ?? null);
       await onRefresh();
       await loadTicker();
+      await loadLiveChanges();
     } catch (e) {
       setSyncError("دریافت قیمت‌ها ناموفق بود. دوباره تلاش کنید.");
     } finally {
@@ -265,6 +304,13 @@ export function InvestmentsScreen({
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // هر بار که لیست دارایی‌ها عوض می‌شود (دارایی جدید اضافه/حذف شد)، درصد
+  // تغییر امروزشان را هم دوباره از کش قیمت‌ها بخوان.
+  useEffect(() => {
+    loadLiveChanges();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [investments]);
 
   const catMap = useMemo(
     () => new Map(investmentCategories.map((c) => [c.id, c])),
@@ -448,7 +494,9 @@ export function InvestmentsScreen({
 
             <div className="mt-5 grid grid-cols-2 gap-2">
               <div className="rounded-2xl bg-white/10 p-3">
-                <p className="text-xs text-primary-foreground/70">سود / زیان</p>
+                <p className="text-xs text-primary-foreground/70">
+                  سود/زیان از زمان خرید
+                </p>
                 <p
                   className={cn(
                     "mt-1 text-sm font-bold",
@@ -585,6 +633,9 @@ export function InvestmentsScreen({
                 } = item;
 
                 const cat = catMap.get(investment.categoryId);
+                const todayChange = investment.symbolId
+                  ? liveChangeMap.get(investment.symbolId)
+                  : undefined;
 
                 return (
                   <Card
@@ -619,7 +670,7 @@ export function InvestmentsScreen({
                             </p>
                           </div>
 
-                          {/* Current value + profit */}
+                          {/* Current value + profit since purchase + today's change */}
                           <div className="shrink-0 text-left">
                             <p className="text-sm font-bold">
                               {formatMoney(currentValue, settings)}
@@ -635,6 +686,27 @@ export function InvestmentsScreen({
                               {formatMoney(profit, settings)} (
                               {profitPercent.toFixed(1)}٪)
                             </p>
+                            <p className="text-[9px] text-muted-foreground">
+                              از زمان خرید
+                            </p>
+
+                            {typeof todayChange === "number" && (
+                              <p
+                                className={cn(
+                                  "mt-1 flex items-center justify-end gap-1 text-[10px] font-medium",
+                                  todayChange >= 0
+                                    ? "text-primary"
+                                    : "text-rose-600",
+                                )}
+                              >
+                                {todayChange >= 0 ? (
+                                  <TrendingUp className="size-3" />
+                                ) : (
+                                  <TrendingDown className="size-3" />
+                                )}
+                                امروز {Math.abs(todayChange).toFixed(2)}٪
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -857,6 +929,11 @@ export function InvestmentsScreen({
         }
         investmentTransactions={investmentTransactions}
         settings={settings}
+        todayChangePercent={
+          detailInvestment?.symbolId
+            ? liveChangeMap.get(detailInvestment.symbolId)
+            : undefined
+        }
         onClose={() => setDetailInvestment(null)}
         onBuy={(inv) => {
           setDetailInvestment(null);
