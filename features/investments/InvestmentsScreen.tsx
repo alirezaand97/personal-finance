@@ -620,6 +620,7 @@ export function InvestmentsScreen({
             </Card>
           ) : (
             <div className="flex flex-col gap-2">
+              ```tsx
               {metrics.map((item) => {
                 const {
                   investment,
@@ -630,6 +631,7 @@ export function InvestmentsScreen({
                 } = item;
 
                 const cat = catMap.get(investment.categoryId);
+
                 const todayChange = investment.symbolId
                   ? liveChangeMap.get(investment.symbolId)
                   : undefined;
@@ -637,7 +639,7 @@ export function InvestmentsScreen({
                 return (
                   <Card
                     key={investment.id}
-                    className="overflow-hidden border-border/70 p-3.5 shadow-sm cursor-pointer transition-colors hover:bg-muted/30"
+                    className="cursor-pointer overflow-hidden border-border/70 p-3.5 shadow-sm transition-colors hover:bg-muted/30"
                     role="button"
                     tabIndex={0}
                     onClick={() => setDetailInvestment(investment)}
@@ -652,61 +654,79 @@ export function InvestmentsScreen({
                         {/* Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold flex items-center gap-1">
+                            {/* Symbol */}
+                            <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                               {investment.name}
-                              {investment.symbolId && (
-                                <span className="ms-1.5 flex items-center gap-1 rounded-sm bg-primary/10 px-1.5 align-middle text-[9px] font-normal text-primary">
-                                  زنده
-                                  {typeof todayChange === "number" && (
-                                    <span
-                                      className={cn(
-                                        "font-medium",
-                                        todayChange >= 0
-                                          ? "text-primary"
-                                          : "text-rose-600",
-                                      )}
-                                    >
-                                      {todayChange >= 0 ? "+" : ""}
-                                      {todayChange.toFixed(1)}٪
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                            </p>
-
-                            <p className="mt-1 text-[11px] text-muted-foreground">
-                              {cat?.name ?? "سایر"} ·{" "}
-                              {investmentUnitLabel(investment.unit)}
                             </p>
                           </div>
 
-                          {/* Current value + profit since purchase */}
+                          {/* Current value */}
                           <div className="shrink-0 text-left">
                             <p className="text-sm font-bold">
                               {formatMoney(currentValue, settings)}
                             </p>
 
-                            <p
-                              className={cn(
-                                "mt-0.5 text-[11px] font-medium",
-                                profit >= 0 ? "text-primary" : "text-rose-600",
+                            {/* Profit since purchase + Today change */}
+                            <div className="mt-0.5 flex items-center justify-end gap-2">
+                              {/* Since purchase */}
+                              <span
+                                className={cn(
+                                  "text-[11px] font-medium",
+                                  profit >= 0
+                                    ? "text-primary"
+                                    : "text-rose-600",
+                                )}
+                              >
+                                {profit >= 0 ? "+" : ""}
+                                {formatMoney(profit, settings)} (
+                                {profitPercent.toFixed(1)}٪)
+                              </span>
+
+                              {/* Today */}
+                              {typeof todayChange === "number" && (
+                                <span
+                                  title="تغییر امروز"
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-[11px] font-semibold",
+                                    todayChange >= 0
+                                      ? "text-primary"
+                                      : "text-rose-600",
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "size-1.5 animate-pulse rounded-full",
+                                      todayChange >= 0
+                                        ? "bg-primary"
+                                        : "bg-rose-600",
+                                    )}
+                                  />
+                                  {todayChange >= 0 ? "+" : ""}
+                                  {todayChange.toFixed(1)}٪
+                                </span>
                               )}
-                            >
-                              {profit >= 0 ? "+" : ""}
-                              {formatMoney(profit, settings)} (
-                              {profitPercent.toFixed(1)}٪)
-                            </p>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Quantity + actions */}
+                        {/* Category + Quantity + Actions */}
                         <div className="mt-3 flex items-center justify-between gap-2">
-                          {/* Quantity */}
+                          {/* Category + Quantity */}
                           <div className="min-w-0">
-                            <p className="mt-0.5 text-xs font-semibold">
-                              {formatQuantity(quantity)}{" "}
-                              <span className="font-normal text-muted-foreground">
-                                {investmentUnitLabel(investment.unit)}
+                            <p className="flex items-center gap-1.5 text-xs font-semibold">
+                              <span className="truncate text-muted-foreground">
+                                {cat?.name ?? "سایر"}
+                              </span>
+
+                              <span className="text-muted-foreground/40">
+                                ·
+                              </span>
+
+                              <span>
+                                {formatQuantity(quantity)}{" "}
+                                <span className="font-normal text-muted-foreground">
+                                  {investmentUnitLabel(investment.unit)}
+                                </span>
                               </span>
                             </p>
                           </div>
@@ -786,6 +806,12 @@ export function InvestmentsScreen({
                   </Card>
                 );
               })}
+              ``` فقط یک نکته: من فرض کردم مدل `Investment` فیلد `symbol` دارد.
+              اگر اسم فیلد سمبل در مدل تو چیز دیگری است، این خط: ```tsx
+              investment.symbol || investment.name ``` را با فیلد درست عوض کن.
+              برای **امروز** هم عمداً از `animate-pulse` روی نقطه‌ی کوچک استفاده
+              کردم؛ خیلی کمتر از یک Badge جا می‌گیرد ولی سریع مشخص می‌کند عدد
+              کنار آن مربوط به امروز است.
             </div>
           )}
         </section>
@@ -912,9 +938,7 @@ export function InvestmentsScreen({
         open={!!detailInvestment}
         investment={detailInvestment}
         category={
-          detailInvestment
-            ? catMap.get(detailInvestment.categoryId)
-            : undefined
+          detailInvestment ? catMap.get(detailInvestment.categoryId) : undefined
         }
         investmentTransactions={investmentTransactions}
         settings={settings}
@@ -943,7 +967,10 @@ export function InvestmentsScreen({
         onEditTransaction={(t) => {
           if (!detailInvestment) return;
           setDetailInvestment(null);
-          setTransactionEditor({ investment: detailInvestment, transaction: t });
+          setTransactionEditor({
+            investment: detailInvestment,
+            transaction: t,
+          });
         }}
         onDeleteTransaction={(t) => setDeleteTransactionTarget(t)}
       />
