@@ -762,15 +762,15 @@ export function InvestmentsScreen({
                           </p>
                         </div>
 
-                        <div className="mt-1.5 flex items-center justify-end gap-2">
+                        <div className="mt-0.5 flex items-center justify-end gap-2">
                           <span
                             className={cn(
                               "text-[11px] font-medium",
                               profit >= 0 ? "text-primary" : "text-rose-600",
                             )}
                           >
-                            {formatMoney(profit, settings)} (
                             {profitPercent.toFixed(1)}٪)
+                            {formatMoney(profit, settings)} (
                           </span>
                         </div>
 
@@ -784,9 +784,6 @@ export function InvestmentsScreen({
                                 </span>
                               </span>
 
-                              <span className="text-muted-foreground/40">
-                                ·
-                              </span>
                               {typeof todayPrice === "number" && (
                                 <>
                                   <span className="text-[10px] text-muted-foreground/40">
