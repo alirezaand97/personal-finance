@@ -124,7 +124,7 @@ export function InvestmentDetailDialog({
                 </p>
                 <p
                   className={cn(
-                    "text-sm font-medium",
+                    "text-xs font-medium",
                     metrics.profit >= 0 ? "text-primary" : "text-rose-600",
                   )}
                 >
@@ -141,7 +141,7 @@ export function InvestmentDetailDialog({
                     </p>
                     <p
                       className={cn(
-                        "flex items-center gap-1 text-sm font-medium",
+                        "flex items-center gap-1 text-xs font-medium",
                         todayChangePercent >= 0
                           ? "text-primary"
                           : "text-rose-600",
@@ -209,39 +209,7 @@ export function InvestmentDetailDialog({
             )}
           </div>
 
-          {/* اکشن‌های سریع */}
-          <div className="flex gap-2">
-            <Button className="flex-1 gap-1.5" onClick={() => onBuy(investment)}>
-              <ArrowDownLeft className="size-4" />
-              خرید
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 gap-1.5"
-              disabled={metrics.quantity <= 0}
-              onClick={() => onSell(investment)}
-            >
-              <ArrowUpLeft className="size-4" />
-              فروش
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onEditAsset(investment)}
-              aria-label="ویرایش دارایی"
-            >
-              <Edit3 />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-destructive"
-              onClick={() => onDeleteAsset(investment)}
-              aria-label="حذف دارایی"
-            >
-              <Trash2 />
-            </Button>
-          </div>
+      
 
           {/* تاریخچه تراکنش‌ها */}
           <div>
