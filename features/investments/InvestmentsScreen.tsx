@@ -500,14 +500,12 @@ export function InvestmentsScreen({
                     totalProfit < 0 && "text-red-200",
                   )}
                 >
-                  {totalProfit >= 0 ? "+" : ""}
                   {formatMoney(totalProfit, settings)}
                 </p>
               </div>
               <div className="rounded-2xl bg-white/10 p-3">
                 <p className="text-xs text-primary-foreground/70">بازدهی</p>
                 <p className="mt-1 text-sm font-bold">
-                  {totalProfitPercent >= 0 ? "+" : ""}
                   {totalProfitPercent.toFixed(1)}٪
                 </p>
               </div>
@@ -620,7 +618,6 @@ export function InvestmentsScreen({
             </Card>
           ) : (
             <div className="flex flex-col gap-2">
-              ```tsx
               {metrics.map((item) => {
                 const {
                   investment,
@@ -650,88 +647,72 @@ export function InvestmentsScreen({
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
-                              {investment.name}
-                            </p>
-                          </div>
-
-                          <div className="shrink-0 text-left">
-                            <p className="text-sm font-bold">
-                              {formatMoney(currentValue, settings)}
-                            </p>
-
-                            <div className="mt-0.5 flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="min-w-0 truncate text-sm font-semibold">
+                            {investment.name}
+                          </p>
+                          <p className="shrink-0 text-sm font-bold">
+                            {formatMoney(currentValue, settings)}
+                          </p>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-end gap-2">
+                          <span
+                            className={cn(
+                              "text-[11px] font-medium",
+                              profit >= 0 ? "text-primary" : "text-rose-600",
+                            )}
+                          >
+                            {formatMoney(profit, settings)} (
+                            {profitPercent.toFixed(1)}٪)
+                          </span>
+                          {typeof todayChange === "number" && (
+                            <>
+                              <span className="text-[10px] text-muted-foreground/40">
+                                |
+                              </span>
                               <span
+                                title="تغییر امروز"
                                 className={cn(
-                                  "text-[11px] font-medium",
-                                  profit >= 0
+                                  "inline-flex items-center gap-1 text-[11px] font-medium",
+                                  todayChange >= 0
                                     ? "text-primary"
                                     : "text-rose-600",
                                 )}
                               >
-                                {profit >= 0 ? "+" : ""}
-                                {formatMoney(profit, settings)} (
-                                {profitPercent.toFixed(1)}٪)
+                                {formatMoney(
+                                  currentValue * (todayChange / 100),
+                                  settings,
+                                )}
+                                ({todayChange.toFixed(1)}٪)
+                                <span
+                                  className={cn(
+                                    "size-1.5 shrink-0 animate-pulse rounded-full",
+                                    todayChange >= 0
+                                      ? "bg-primary"
+                                      : "bg-rose-600",
+                                  )}
+                                />
                               </span>
-
-                              {typeof todayChange === "number" && (
-                                <>
-                                  <span className="text-[10px] text-muted-foreground/40">
-                                    |
-                                  </span>
-
-                                  <span
-                                    title="امروز"
-                                    className={cn(
-                                      "inline-flex items-center gap-1 text-[11px] font-medium",
-                                      todayChange >= 0
-                                        ? "text-primary"
-                                        : "text-rose-600",
-                                    )}
-                                  >
-                                    <span
-                                      className={cn(
-                                        "size-1.5 shrink-0 animate-pulse rounded-full",
-                                        todayChange >= 0
-                                          ? "bg-primary"
-                                          : "bg-rose-600",
-                                      )}
-                                    />
-                                    {todayChange >= 0 ? "+" : ""}
-                                    {formatMoney(
-                                      currentValue * (todayChange / 100),
-                                      settings,
-                                    )}{" "}
-                                    ({todayChange.toFixed(1)}٪)
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
+                            </>
+                          )}
                         </div>
-
                         <div className="mt-3 flex items-center justify-between gap-2">
                           <div className="min-w-0">
                             <p className="flex items-center gap-1.5 text-xs">
                               <span className="truncate text-muted-foreground">
                                 {cat?.name ?? "سایر"}
                               </span>
-
                               <span className="text-muted-foreground/40">
                                 ·
                               </span>
-
                               <span>
-                                {formatQuantity(quantity)}{" "}
+                                {formatQuantity(quantity)}
                                 <span className="font-normal text-muted-foreground">
                                   {investmentUnitLabel(investment.unit)}
                                 </span>
                               </span>
                             </p>
                           </div>
-
                           <div className="flex items-center gap-1">
                             <Button
                               size="icon-sm"
@@ -749,7 +730,6 @@ export function InvestmentsScreen({
                             >
                               <ArrowDownLeft className="size-4" />
                             </Button>
-
                             <Button
                               size="icon-sm"
                               variant="ghost"
@@ -767,7 +747,6 @@ export function InvestmentsScreen({
                             >
                               <ArrowUpLeft className="size-4" />
                             </Button>
-
                             <Button
                               size="icon-sm"
                               variant="ghost"
@@ -781,7 +760,6 @@ export function InvestmentsScreen({
                             >
                               <Edit3 className="size-4" />
                             </Button>
-
                             <Button
                               size="icon-sm"
                               variant="ghost"
@@ -852,7 +830,7 @@ export function InvestmentsScreen({
                         {investment.name}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {transactionKindLabel(transaction.kind)} ·{" "}
+                        {transactionKindLabel(transaction.kind)} ·
                         {dayWord(transaction.date)}
                       </p>
                     </div>
@@ -866,7 +844,7 @@ export function InvestmentsScreen({
                         {formatMoney(transaction.amount, settings)}
                       </p>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {formatQuantity(transaction.quantity)}{" "}
+                        {formatQuantity(transaction.quantity)}
                         {investmentUnitLabel(investment.unit)}
                       </p>
                     </div>
