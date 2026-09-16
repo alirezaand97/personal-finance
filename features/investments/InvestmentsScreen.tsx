@@ -746,9 +746,9 @@ export function InvestmentsScreen({
                     tabIndex={0}
                     onClick={() => setDetailInvestment(investment)}
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <CategoryIcon category={cat} className="size-5" />
+                    <div className="flex items-start gap-2">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <CategoryIcon category={cat}  className="size-4" />
                       </span>
 
                       <div className="min-w-0 flex-1">
@@ -798,11 +798,14 @@ export function InvestmentsScreen({
                                           : "text-rose-600",
                                       )}
                                     >
-                                      {todayChange.toFixed(1)}٪
+                                      ({todayChange.toFixed(1)}٪)
                                     </span>
                                   )}
                                   <span className="text-[11px] font-medium">
-                                    {formatMoney(todayPrice, settings)}
+                                    {formatMoney(todayPrice, {
+                                      ...settings,
+                                      currency: "",
+                                    })}
                                   </span>
                                 </>
                               )}
