@@ -574,12 +574,12 @@ export function InvestmentsScreen({
 
                 <p
                   className={cn(
-                    "mt-1 text-sm font-bold",
+                    "mt-1 text-[13px] font-medium",
                     totalProfit < 0 && "text-red-200",
                   )}
                 >
-                  {formatMoney(totalProfit, settings)} (
                   {totalProfitPercent.toFixed(1)}٪)
+                  {formatMoney(totalProfit, settings)} (
                 </p>
               </div>
 
@@ -590,7 +590,7 @@ export function InvestmentsScreen({
 
                 <p
                   className={cn(
-                    "mt-1 text-sm font-bold",
+                    "mt-1 text-[13px] font-medium",
                     totalTodayProfit < 0 && "text-red-200",
                   )}
                 >
