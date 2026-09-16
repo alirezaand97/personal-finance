@@ -19,12 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatQuantity, getInvestmentMetrics, investmentUnitLabel, transactionKindLabel } from "./utils";
 
 import { Button } from "@/components/ui/button";
+import { CategoryIcon } from "@/components/common/CategoryIcon";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { formatQuantity, getInvestmentMetrics, investmentUnitLabel, transactionKindLabel } from "./utils";
-import { CategoryIcon } from "@/components/common/CategoryIcon";
 
 export function InvestmentDetailDialog({
   open,
@@ -57,19 +57,19 @@ export function InvestmentDetailDialog({
     if (!investment) return null;
     return getInvestmentMetrics(investment, investmentTransactions);
   }, [investment, investmentTransactions]);
-
+ 
   const history = useMemo(() => {
     if (!investment) return [];
     return investmentTransactions
       .filter((t) => t.investmentId === investment.id)
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [investment, investmentTransactions]);
-
+ 
   if (!investment || !metrics) return null;
-
+ 
   const averageBuyPrice =
     metrics.quantity > 0 ? metrics.netInvested / metrics.quantity : 0;
-
+ 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -93,7 +93,7 @@ export function InvestmentDetailDialog({
             </div>
           </div>
         </DialogHeader>
-
+ 
         <div className="space-y-4">
           {/* ارزش فعلی + سود/زیان */}
           <div className="rounded-2xl bg-primary/[0.06] p-4">
@@ -112,7 +112,7 @@ export function InvestmentDetailDialog({
               {metrics.profitPercent.toFixed(1)}٪)
             </p>
           </div>
-
+ 
           {/* جزئیات ریز */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-muted/50 p-3">
@@ -161,7 +161,7 @@ export function InvestmentDetailDialog({
               </div>
             )}
           </div>
-
+ 
           {/* اکشن‌های سریع */}
           <div className="flex gap-2">
             <Button className="flex-1 gap-1.5" onClick={() => onBuy(investment)}>
@@ -195,7 +195,7 @@ export function InvestmentDetailDialog({
               <Trash2 />
             </Button>
           </div>
-
+ 
           {/* تاریخچه تراکنش‌ها */}
           <div>
             <p className="mb-2 text-sm font-bold">
@@ -280,3 +280,4 @@ export function InvestmentDetailDialog({
     </Dialog>
   );
 }
+ 
