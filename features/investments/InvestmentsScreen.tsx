@@ -777,7 +777,7 @@ export function InvestmentsScreen({
                         <div className="mt-3 flex items-center justify-between gap-2">
                           <div className="min-w-0">
                             <p className="flex items-center gap-1.5 text-xs">
-                              <span>
+                              <span className="flex gap-0.5">
                                 {formatQuantity(quantity)}
                                 <span className="font-normal text-muted-foreground">
                                   {investmentUnitLabel(investment.unit)}
