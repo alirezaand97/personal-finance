@@ -1,4 +1,3 @@
-
 import * as React from "react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -232,9 +231,7 @@ export function InvestmentsScreen({
       db.stockQuotes.toArray(),
     ]);
 
-    setCurrencyGoldQuotes(
-      marketResults.filter((q): q is MarketQuote => !!q),
-    );
+    setCurrencyGoldQuotes(marketResults.filter((q): q is MarketQuote => !!q));
 
     setFundQuotes(allStocks.filter((s) => s.name.includes("مفید")));
   };
@@ -386,9 +383,7 @@ export function InvestmentsScreen({
 
     return (
       sum +
-      (typeof change === "number"
-        ? item.currentValue * (change / 100)
-        : 0)
+      (typeof change === "number" ? item.currentValue * (change / 100) : 0)
     );
   }, 0);
 
@@ -485,9 +480,7 @@ export function InvestmentsScreen({
 
     ...goldTickerSymbols
       .map((t) => {
-        const q = currencyGoldQuotes.find(
-          (q) => q.id === `gold:${t.symbol}`,
-        );
+        const q = currencyGoldQuotes.find((q) => q.id === `gold:${t.symbol}`);
 
         return (
           q && {
@@ -557,9 +550,7 @@ export function InvestmentsScreen({
             disabled={syncing}
             className="shrink-0 px-2"
           >
-            <RefreshCw
-              className={cn("size-3.5", syncing && "animate-spin")}
-            />
+            <RefreshCw className={cn("size-3.5", syncing && "animate-spin")} />
           </Button>
         </div>
 
@@ -571,9 +562,7 @@ export function InvestmentsScreen({
           <div className="pointer-events-none absolute -right-16 -top-20 size-52 rounded-full bg-white/10 blur-3xl" />
 
           <div className="relative">
-            <p className="text-sm text-primary-foreground/70">
-              ارزش فعلی سبد
-            </p>
+            <p className="text-sm text-primary-foreground/70">ارزش فعلی سبد</p>
 
             <p className="mt-2 text-2xl font-semibold tracking-tight">
               {formatMoney(totalValue, settings)}
@@ -581,9 +570,7 @@ export function InvestmentsScreen({
 
             <div className="mt-5 grid grid-cols-2 gap-2">
               <div className="rounded-2xl bg-white/10 p-3">
-                <p className="text-xs text-primary-foreground/70">
-                  سود / زیان
-                </p>
+                <p className="text-xs text-primary-foreground/70">سود / زیان</p>
 
                 <p
                   className={cn(
@@ -619,9 +606,7 @@ export function InvestmentsScreen({
             <CardHeader>
               <CardTitle className="text-base">ترکیب سبد</CardTitle>
 
-              <CardDescription>
-                ارزش روز دارایی‌ها
-              </CardDescription>
+              <CardDescription>ارزش روز دارایی‌ها</CardDescription>
             </CardHeader>
 
             <CardContent className="flex items-center gap-3">
@@ -655,10 +640,7 @@ export function InvestmentsScreen({
                             </span>
 
                             <p className="mt-1 text-sm font-bold">
-                              {formatMoney(
-                                Number(item.value),
-                                settings,
-                              )}
+                              {formatMoney(Number(item.value), settings)}
                             </p>
                           </div>
                         );
@@ -696,15 +678,9 @@ export function InvestmentsScreen({
           </Card>
         )}
 
-        <PortfolioTrendCard
-          snapshots={snapshots}
-          settings={settings}
-        />
+        <PortfolioTrendCard snapshots={snapshots} settings={settings} />
 
-        <TickerStrip
-          items={tickerItems}
-          settings={settings}
-        />
+        <TickerStrip items={tickerItems} settings={settings} />
 
         <section>
           <div className="mb-3 flex items-center justify-between">
@@ -726,13 +702,11 @@ export function InvestmentsScreen({
                 <TrendingUp />
               </div>
 
-              <h2 className="font-bold">
-                هنوز دارایی‌ای ثبت نشده
-              </h2>
+              <h2 className="font-bold">هنوز دارایی‌ای ثبت نشده</h2>
 
               <p className="mt-2 max-w-[260px] text-sm leading-6 text-muted-foreground">
-                ابتدا دارایی‌هایی مثل طلا، سهام یا ارز دیجیتال را اضافه کنید
-                و بعد خرید و فروش آن‌ها را ثبت کنید.
+                ابتدا دارایی‌هایی مثل طلا، سهام یا ارز دیجیتال را اضافه کنید و
+                بعد خرید و فروش آن‌ها را ثبت کنید.
               </p>
 
               <Button
@@ -770,16 +744,11 @@ export function InvestmentsScreen({
                     className="cursor-pointer overflow-hidden border-border/70 p-3.5 shadow-sm transition-colors hover:bg-muted/30"
                     role="button"
                     tabIndex={0}
-                    onClick={() =>
-                      setDetailInvestment(investment)
-                    }
+                    onClick={() => setDetailInvestment(investment)}
                   >
                     <div className="flex items-start gap-3">
                       <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <CategoryIcon
-                          category={cat}
-                          className="size-5"
-                        />
+                        <CategoryIcon category={cat} className="size-5" />
                       </span>
 
                       <div className="min-w-0 flex-1">
@@ -797,51 +766,38 @@ export function InvestmentsScreen({
                           <span
                             className={cn(
                               "text-[11px] font-medium",
-                              profit >= 0
-                                ? "text-primary"
-                                : "text-rose-600",
+                              profit >= 0 ? "text-primary" : "text-rose-600",
                             )}
                           >
                             {formatMoney(profit, settings)} (
                             {profitPercent.toFixed(1)}٪)
                           </span>
-
-                          {typeof todayPrice === "number" && (
-                            <>
-                              <span className="text-[10px] text-muted-foreground/40">
-                                |
-                              </span>
-
-                              <span className="text-[11px] font-medium">
-                                {formatMoney(
-                                  todayPrice,
-                                  settings,
-                                )}
-                              </span>
-                            </>
-                          )}
                         </div>
 
                         <div className="mt-3 flex items-center justify-between gap-2">
                           <div className="min-w-0">
                             <p className="flex items-center gap-1.5 text-xs">
-                              <span className="truncate text-muted-foreground">
-                                {cat?.name ?? "سایر"}
+                              <span>
+                                {formatQuantity(quantity)}
+                                <span className="font-normal text-muted-foreground">
+                                  {investmentUnitLabel(investment.unit)}
+                                </span>
                               </span>
 
                               <span className="text-muted-foreground/40">
                                 ·
                               </span>
+                              {typeof todayPrice === "number" && (
+                                <>
+                                  <span className="text-[10px] text-muted-foreground/40">
+                                    |
+                                  </span>
 
-                              <span>
-                                {formatQuantity(quantity)}
-
-                                <span className="font-normal text-muted-foreground">
-                                  {investmentUnitLabel(
-                                    investment.unit,
-                                  )}
-                                </span>
-                              </span>
+                                  <span className="text-[11px] font-medium">
+                                    {formatMoney(todayPrice, settings)}
+                                  </span>
+                                </>
+                              )}
                             </p>
                           </div>
 
@@ -984,15 +940,10 @@ export function InvestmentsScreen({
                       <p
                         className={cn(
                           "text-sm! font-medium!",
-                          isPositive
-                            ? "text-primary"
-                            : "text-rose-600",
+                          isPositive ? "text-primary" : "text-rose-600",
                         )}
                       >
-                        {formatMoney(
-                          transaction.amount,
-                          settings,
-                        )}
+                        {formatMoney(transaction.amount, settings)}
                       </p>
 
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -1018,9 +969,7 @@ export function InvestmentsScreen({
                     <Button
                       size="icon-sm"
                       variant="ghost"
-                      onClick={() =>
-                        setDeleteTransactionTarget(transaction)
-                      }
+                      onClick={() => setDeleteTransactionTarget(transaction)}
                       aria-label="حذف تراکنش"
                     >
                       <Trash2 />
@@ -1065,9 +1014,7 @@ export function InvestmentsScreen({
         open={!!detailInvestment}
         investment={detailInvestment}
         category={
-          detailInvestment
-            ? catMap.get(detailInvestment.categoryId)
-            : undefined
+          detailInvestment ? catMap.get(detailInvestment.categoryId) : undefined
         }
         investmentTransactions={investmentTransactions}
         settings={settings}
@@ -1111,24 +1058,19 @@ export function InvestmentsScreen({
             transaction: t,
           });
         }}
-        onDeleteTransaction={(t) =>
-          setDeleteTransactionTarget(t)
-        }
+        onDeleteTransaction={(t) => setDeleteTransactionTarget(t)}
       />
 
       <Dialog
         open={!!deleteTarget}
-        onOpenChange={(v) =>
-          !v && setDeleteTarget(null)
-        }
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>حذف دارایی</DialogTitle>
 
             <DialogDescription>
-              {deleteTarget?.name} و تمام تراکنش‌های مربوط به آن حذف
-              می‌شود.
+              {deleteTarget?.name} و تمام تراکنش‌های مربوط به آن حذف می‌شود.
             </DialogDescription>
           </DialogHeader>
 
@@ -1154,15 +1096,11 @@ export function InvestmentsScreen({
 
       <Dialog
         open={!!deleteTransactionTarget}
-        onOpenChange={(v) =>
-          !v && setDeleteTransactionTarget(null)
-        }
+        onOpenChange={(v) => !v && setDeleteTransactionTarget(null)}
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              حذف تراکنش سرمایه‌گذاری
-            </DialogTitle>
+            <DialogTitle>حذف تراکنش سرمایه‌گذاری</DialogTitle>
 
             <DialogDescription>
               این تراکنش برای همیشه حذف می‌شود.
@@ -1173,9 +1111,7 @@ export function InvestmentsScreen({
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() =>
-                setDeleteTransactionTarget(null)
-              }
+              onClick={() => setDeleteTransactionTarget(null)}
             >
               انصراف
             </Button>
