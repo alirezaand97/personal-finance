@@ -24,6 +24,7 @@ import {
 import {
   formatQuantity,
   getInvestmentMetrics,
+  getTodayChangeAmount,
   investmentUnitLabel,
   transactionKindLabel,
 } from "@/features/investments/utils";
@@ -80,6 +81,11 @@ export function InvestmentDetailDialog({
   const averageBuyPrice =
     metrics.quantity > 0 ? metrics.netInvested / metrics.quantity : 0;
 
+  const todayChangeAmount =
+    typeof todayChangePercent === "number"
+      ? getTodayChangeAmount(metrics.currentValue, todayChangePercent)
+      : undefined;
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -127,28 +133,30 @@ export function InvestmentDetailDialog({
                   {metrics.profitPercent.toFixed(1)}٪)
                 </p>
               </div>
-              {typeof todayChangePercent === "number" && (
-                <div className="text-left">
-                  <p className="text-[10px] text-muted-foreground">
-                    تغییر قیمت امروز
-                  </p>
-                  <p
-                    className={cn(
-                      "flex items-center gap-1 text-sm font-medium",
-                      todayChangePercent >= 0
-                        ? "text-primary"
-                        : "text-rose-600",
-                    )}
-                  >
-                    {todayChangePercent >= 0 ? (
-                      <TrendingUp className="size-3.5" />
-                    ) : (
-                      <TrendingDown className="size-3.5" />
-                    )}
-                    {Math.abs(todayChangePercent).toFixed(2)}٪
-                  </p>
-                </div>
-              )}
+              {typeof todayChangePercent === "number" &&
+                typeof todayChangeAmount === "number" && (
+                  <div className="text-left">
+                    <p className="text-[10px] text-muted-foreground">
+                      تغییر قیمت امروز
+                    </p>
+                    <p
+                      className={cn(
+                        "flex items-center gap-1 text-sm font-medium",
+                        todayChangePercent >= 0
+                          ? "text-primary"
+                          : "text-rose-600",
+                      )}
+                    >
+                      {todayChangePercent >= 0 ? (
+                        <TrendingUp className="size-3.5" />
+                      ) : (
+                        <TrendingDown className="size-3.5" />
+                      )}
+                      {formatMoney(Math.abs(todayChangeAmount), settings)} (
+                      {Math.abs(todayChangePercent).toFixed(2)}٪)
+                    </p>
+                  </div>
+                )}
             </div>
           </div>
 
