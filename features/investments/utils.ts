@@ -49,3 +49,6 @@ export const goldTickerSymbols = [
 
 export type LiveMarketKind = "stock" | "gold" | "currency" | "crypto";
 export const liveCategoryIcons: LiveMarketKind[] = ["stock", "gold", "currency", "crypto"];
+export function getTodayChangeAmount(currentValue: number, changePercent: number) {
+  return currentValue - currentValue / (1 + changePercent / 100);
+}
