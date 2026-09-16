@@ -152,7 +152,7 @@ import {
 import { chartColors } from "@/lib/chart";
 import { InvestmentAssetEditor } from "@/features/investments/InvestmentAssetEditor";
 import { InvestmentTransactionEditor } from "@/features/investments/InvestmentTransactionEditor";
-import { InvestmentDetailDialog } from "@/features/investments/InvestmentDetailDialog";
+import { InvestmentDetailDialog } from "./Investmentdetaildialog";
 
 export function InvestmentsScreen({
   investments,
