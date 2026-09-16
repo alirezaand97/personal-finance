@@ -518,7 +518,7 @@ export function InvestmentsScreen({
             <CardHeader>
               <CardTitle className="text-base">ترکیب سبد</CardTitle>
               <CardDescription>
-                ارزش روز دارایی‌ها بر اساس دسته‌بندی
+                ارزش روز دارایی‌ها
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center gap-3">
