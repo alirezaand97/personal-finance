@@ -578,7 +578,7 @@ export function InvestmentsScreen({
                     totalProfit < 0 && "text-red-200",
                   )}
                 >
-                  {formatMoney(totalProfit, settings)} ({totalProfitPercent.toFixed(1)}٪)
+                 ({totalProfitPercent.toFixed(1)}٪) {formatMoney(totalProfit, settings)} 
                 </p>
               </div>
 
@@ -768,7 +768,7 @@ export function InvestmentsScreen({
                               profit >= 0 ? "text-primary" : "text-rose-600",
                             )}
                           >
-                            {formatMoney(profit, settings)} ({profitPercent.toFixed(1)}٪)
+                          ({profitPercent.toFixed(1)}٪)  {formatMoney(profit, settings)} 
                           </span>
                         </div>
 
