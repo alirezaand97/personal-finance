@@ -645,30 +645,24 @@ export function InvestmentsScreen({
                     onClick={() => setDetailInvestment(investment)}
                   >
                     <div className="flex items-start gap-3">
-                      {/* Asset icon */}
                       <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                         <CategoryIcon category={cat} className="size-5" />
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        {/* Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            {/* Symbol */}
                             <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                               {investment.name}
                             </p>
                           </div>
 
-                          {/* Current value */}
                           <div className="shrink-0 text-left">
                             <p className="text-sm font-bold">
                               {formatMoney(currentValue, settings)}
                             </p>
 
-                            {/* Profit since purchase + Today change */}
                             <div className="mt-0.5 flex items-center justify-end gap-2">
-                              {/* Since purchase */}
                               <span
                                 className={cn(
                                   "text-[11px] font-medium",
@@ -682,38 +676,45 @@ export function InvestmentsScreen({
                                 {profitPercent.toFixed(1)}٪)
                               </span>
 
-                              {/* Today */}
                               {typeof todayChange === "number" && (
-                                <span
-                                  title="تغییر امروز"
-                                  className={cn(
-                                    "inline-flex items-center gap-1 text-[11px] font-semibold",
-                                    todayChange >= 0
-                                      ? "text-primary"
-                                      : "text-rose-600",
-                                  )}
-                                >
+                                <>
+                                  <span className="text-[10px] text-muted-foreground/40">
+                                    |
+                                  </span>
+
                                   <span
+                                    title="امروز"
                                     className={cn(
-                                      "size-1.5 animate-pulse rounded-full",
+                                      "inline-flex items-center gap-1 text-[11px] font-medium",
                                       todayChange >= 0
-                                        ? "bg-primary"
-                                        : "bg-rose-600",
+                                        ? "text-primary"
+                                        : "text-rose-600",
                                     )}
-                                  />
-                                  {todayChange >= 0 ? "+" : ""}
-                                  {todayChange.toFixed(1)}٪
-                                </span>
+                                  >
+                                    <span
+                                      className={cn(
+                                        "size-1.5 shrink-0 animate-pulse rounded-full",
+                                        todayChange >= 0
+                                          ? "bg-primary"
+                                          : "bg-rose-600",
+                                      )}
+                                    />
+                                    {todayChange >= 0 ? "+" : ""}
+                                    {formatMoney(
+                                      currentValue * (todayChange / 100),
+                                      settings,
+                                    )}{" "}
+                                    ({todayChange.toFixed(1)}٪)
+                                  </span>
+                                </>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        {/* Category + Quantity + Actions */}
                         <div className="mt-3 flex items-center justify-between gap-2">
-                          {/* Category + Quantity */}
                           <div className="min-w-0">
-                            <p className="flex items-center gap-1.5 text-xs font-semibold">
+                            <p className="flex items-center gap-1.5 text-xs">
                               <span className="truncate text-muted-foreground">
                                 {cat?.name ?? "سایر"}
                               </span>
@@ -731,9 +732,7 @@ export function InvestmentsScreen({
                             </p>
                           </div>
 
-                          {/* Actions */}
                           <div className="flex items-center gap-1">
-                            {/* Buy */}
                             <Button
                               size="icon-sm"
                               variant="ghost"
@@ -751,7 +750,6 @@ export function InvestmentsScreen({
                               <ArrowDownLeft className="size-4" />
                             </Button>
 
-                            {/* Sell */}
                             <Button
                               size="icon-sm"
                               variant="ghost"
@@ -770,7 +768,6 @@ export function InvestmentsScreen({
                               <ArrowUpLeft className="size-4" />
                             </Button>
 
-                            {/* Edit */}
                             <Button
                               size="icon-sm"
                               variant="ghost"
@@ -785,7 +782,6 @@ export function InvestmentsScreen({
                               <Edit3 className="size-4" />
                             </Button>
 
-                            {/* Delete */}
                             <Button
                               size="icon-sm"
                               variant="ghost"
@@ -806,12 +802,6 @@ export function InvestmentsScreen({
                   </Card>
                 );
               })}
-              ``` فقط یک نکته: من فرض کردم مدل `Investment` فیلد `symbol` دارد.
-              اگر اسم فیلد سمبل در مدل تو چیز دیگری است، این خط: ```tsx
-              investment.symbol || investment.name ``` را با فیلد درست عوض کن.
-              برای **امروز** هم عمداً از `animate-pulse` روی نقطه‌ی کوچک استفاده
-              کردم؛ خیلی کمتر از یک Badge جا می‌گیرد ولی سریع مشخص می‌کند عدد
-              کنار آن مربوط به امروز است.
             </div>
           )}
         </section>
