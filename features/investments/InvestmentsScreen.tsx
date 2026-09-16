@@ -578,8 +578,7 @@ export function InvestmentsScreen({
                     totalProfit < 0 && "text-red-200",
                   )}
                 >
-                  {totalProfitPercent.toFixed(1)}٪)
-                  {formatMoney(totalProfit, settings)} (
+                  {formatMoney(totalProfit, settings)} ({totalProfitPercent.toFixed(1)}٪)
                 </p>
               </div>
 
@@ -762,15 +761,14 @@ export function InvestmentsScreen({
                           </p>
                         </div>
 
-                        <div className="mt-0.5 flex items-center justify-end gap-2">
+                        <div className="mt-1.5 flex items-center justify-end gap-2">
                           <span
                             className={cn(
                               "text-[11px] font-medium",
                               profit >= 0 ? "text-primary" : "text-rose-600",
                             )}
                           >
-                            {profitPercent.toFixed(1)}٪)
-                            {formatMoney(profit, settings)} (
+                            {formatMoney(profit, settings)} ({profitPercent.toFixed(1)}٪)
                           </span>
                         </div>
 
@@ -784,6 +782,7 @@ export function InvestmentsScreen({
                                 </span>
                               </span>
 
+                        
                               {typeof todayPrice === "number" && (
                                 <>
                                   <span className="text-[10px] text-muted-foreground/40">
