@@ -151,7 +151,7 @@ import {
 import { chartColors } from "@/lib/chart";
 import { InvestmentAssetEditor } from "@/features/investments/InvestmentAssetEditor";
 import { InvestmentTransactionEditor } from "@/features/investments/InvestmentTransactionEditor";
-import { InvestmentDetailDialog } from "@/features/investments/InvestmentdetailDialog";
+import { InvestmentDetailDialog } from "@/features/investments/Investmentdetaildialog";
 
 export function InvestmentsScreen({
   investments,
