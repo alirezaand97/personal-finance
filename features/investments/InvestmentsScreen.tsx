@@ -649,21 +649,16 @@ export function InvestmentsScreen({
                   >
                     <div className="flex items-start gap-3">
                       {/* Asset icon */}
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <CategoryIcon category={cat} className="size-5" />
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <CategoryIcon category={cat} className="size-4" />
                       </span>
 
                       <div className="min-w-0 flex-1">
                         {/* Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold flex items-center gap-1">
+                            <p className="truncate text-xs font-medium">
                               {investment.name}
-                              {investment.symbolId && (
-                                <span className="ms-1.5 rounded-sm bg-primary/10 px-1.5 align-middle text-[9px] font-normal text-primary">
-                                  زنده
-                                </span>
-                              )}
                             </p>
 
                             <p className="mt-1 text-[11px] text-muted-foreground">
@@ -674,19 +669,17 @@ export function InvestmentsScreen({
 
                           {/* Current value + profit since purchase + today's change */}
                           <div className="shrink-0 text-left">
-                            <p className="text-sm font-bold">
+                            <p className="flex items-baseline gap-1.5 whitespace-nowrap text-sm font-bold">
                               {formatMoney(currentValue, settings)}
-                            </p>
-
-                            <p
-                              className={cn(
-                                "mt-0.5 text-[11px] font-medium",
-                                profit >= 0 ? "text-primary" : "text-rose-600",
-                              )}
-                            >
-                              {profit >= 0 ? "+" : ""}
-                              {formatMoney(profit, settings)} (
-                              {profitPercent.toFixed(1)}٪)
+                              <span
+                                className={cn(
+                                  "text-[11px] font-medium",
+                                  profit >= 0 ? "text-primary" : "text-rose-600",
+                                )}
+                              >
+                                ({profit >= 0 ? "+" : ""}
+                                {profitPercent.toFixed(1)}٪)
+                              </span>
                             </p>
 
                             {typeof todayChange === "number" &&
