@@ -747,7 +747,7 @@ export function InvestmentsScreen({
                     onClick={() => setDetailInvestment(investment)}
                   >
                     <div className="flex items-start gap-2">
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                         <CategoryIcon category={cat}  className="size-4" />
                       </span>
 
