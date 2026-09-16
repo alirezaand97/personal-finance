@@ -29,7 +29,6 @@ import {
   ShoppingBag,
   Trash2,
   TrendingUp,
-  TrendingDown,
   Trophy,
   Utensils,
   Wallet,
@@ -152,7 +151,7 @@ import {
 import { chartColors } from "@/lib/chart";
 import { InvestmentAssetEditor } from "@/features/investments/InvestmentAssetEditor";
 import { InvestmentTransactionEditor } from "@/features/investments/InvestmentTransactionEditor";
-import { InvestmentDetailDialog } from "./Investmentdetaildialog";
+import { InvestmentDetailDialog } from "@/features/investments/InvestmentDetailDialog";
 
 export function InvestmentsScreen({
   investments,
@@ -494,9 +493,7 @@ export function InvestmentsScreen({
 
             <div className="mt-5 grid grid-cols-2 gap-2">
               <div className="rounded-2xl bg-white/10 p-3">
-                <p className="text-xs text-primary-foreground/70">
-                  سود/زیان از زمان خرید
-                </p>
+                <p className="text-xs text-primary-foreground/70">سود / زیان</p>
                 <p
                   className={cn(
                     "mt-1 text-sm font-bold",
@@ -655,11 +652,24 @@ export function InvestmentsScreen({
                         {/* Header */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold flex gap-1">
+                            <p className="truncate text-sm font-semibold flex items-center gap-1">
                               {investment.name}
                               {investment.symbolId && (
-                                <span className="ms-1.5 rounded-sm bg-primary/10 px-1.5 align-middle text-[9px] font-normal text-primary flex items-center justify-center">
+                                <span className="ms-1.5 flex items-center gap-1 rounded-sm bg-primary/10 px-1.5 align-middle text-[9px] font-normal text-primary">
                                   زنده
+                                  {typeof todayChange === "number" && (
+                                    <span
+                                      className={cn(
+                                        "font-medium",
+                                        todayChange >= 0
+                                          ? "text-primary"
+                                          : "text-rose-600",
+                                      )}
+                                    >
+                                      {todayChange >= 0 ? "+" : ""}
+                                      {todayChange.toFixed(1)}٪
+                                    </span>
+                                  )}
                                 </span>
                               )}
                             </p>
@@ -670,7 +680,7 @@ export function InvestmentsScreen({
                             </p>
                           </div>
 
-                          {/* Current value + profit since purchase + today's change */}
+                          {/* Current value + profit since purchase */}
                           <div className="shrink-0 text-left">
                             <p className="text-sm font-bold">
                               {formatMoney(currentValue, settings)}
@@ -686,27 +696,6 @@ export function InvestmentsScreen({
                               {formatMoney(profit, settings)} (
                               {profitPercent.toFixed(1)}٪)
                             </p>
-                            <p className="text-[9px] text-muted-foreground">
-                              از زمان خرید
-                            </p>
-
-                            {typeof todayChange === "number" && (
-                              <p
-                                className={cn(
-                                  "mt-1 flex items-center justify-end gap-1 text-[10px] font-medium",
-                                  todayChange >= 0
-                                    ? "text-primary"
-                                    : "text-rose-600",
-                                )}
-                              >
-                                {todayChange >= 0 ? (
-                                  <TrendingUp className="size-3" />
-                                ) : (
-                                  <TrendingDown className="size-3" />
-                                )}
-                                امروز {Math.abs(todayChange).toFixed(2)}٪
-                              </p>
-                            )}
                           </div>
                         </div>
 
