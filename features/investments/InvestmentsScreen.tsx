@@ -578,7 +578,8 @@ export function InvestmentsScreen({
                     totalProfit < 0 && "text-red-200",
                   )}
                 >
-                 ({totalProfitPercent.toFixed(1)}٪) {formatMoney(totalProfit, settings)} 
+                  ({totalProfitPercent.toFixed(1)}٪){" "}
+                  {formatMoney(totalProfit, settings)}
                 </p>
               </div>
 
@@ -768,7 +769,8 @@ export function InvestmentsScreen({
                               profit >= 0 ? "text-primary" : "text-rose-600",
                             )}
                           >
-                          ({profitPercent.toFixed(1)}٪)  {formatMoney(profit, settings)} 
+                            ({profitPercent.toFixed(1)}٪){" "}
+                            {formatMoney(profit, settings)}
                           </span>
                         </div>
 
@@ -782,13 +784,23 @@ export function InvestmentsScreen({
                                 </span>
                               </span>
 
-                        
                               {typeof todayPrice === "number" && (
                                 <>
                                   <span className="text-[10px] text-muted-foreground/40">
                                     |
                                   </span>
-
+                                  {typeof todayChange === "number" && (
+                                    <span
+                                      className={cn(
+                                        "text-[11px] font-medium",
+                                        todayChange >= 0
+                                          ? "text-primary"
+                                          : "text-rose-600",
+                                      )}
+                                    >
+                                      {todayChange.toFixed(1)}٪
+                                    </span>
+                                  )}
                                   <span className="text-[11px] font-medium">
                                     {formatMoney(todayPrice, settings)}
                                   </span>
