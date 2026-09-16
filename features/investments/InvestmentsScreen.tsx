@@ -663,92 +663,121 @@ export function InvestmentsScreen({
                     onClick={() => setDetailInvestment(investment)}
                   >
                     <div className="flex items-start gap-3">
+                      
                       {/* Asset icon */}
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-md! bg-primary/10 text-primary">
-                        <CategoryIcon category={cat} className="size-4" />
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md! bg-primary/10 text-primary">
+                        
+                        <CategoryIcon
+                          category={cat}
+                          className="size-4.5"
+                        />
                       </span>
-
                       <div className="min-w-0 flex-1">
+                        
                         {/* Header */}
                         <div className="flex items-start justify-between gap-3">
+                          
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-medium">
+                            
+                            <p className="truncate text-sm font-bold">
+                              
                               {displayName}
                             </p>
-
                             <p className="mt-1 text-[11px] text-muted-foreground">
-                              {cat?.name ?? "سایر"} ·{" "}
+                              
+                              {cat?.name ?? "سایر"} ·
                               {investmentUnitLabel(investment.unit)}
                             </p>
                           </div>
-
-                          {/* Current value + profit since purchase + today's change */}
-                          {/* Current value + profit since purchase + today's change */}
+                          {/* Current value */}
                           <div className="shrink-0 text-left">
-                            <p className="flex items-baseline justify-end gap-1.5 whitespace-nowrap text-sm font-bold">
-                              <span>{formatMoney(currentValue, settings)}</span>
-                              <span
-                                className={cn(
-                                  "text-[11px] font-medium",
-                                  profit >= 0
-                                    ? "text-primary"
-                                    : "text-rose-600",
-                                )}
-                              >
-                                ({profit >= 0 ? "+" : ""}
-                                {profitPercent.toFixed(1)}٪)
-                              </span>
+                            
+                            <p className="whitespace-nowrap text-sm font-bold">
+                              
+                              {formatMoney(currentValue, settings)}
                             </p>
-
-                            <p
-                              className={cn(
-                                "mt-1 text-[11px] font-medium",
-                                profit >= 0 ? "text-primary" : "text-rose-600",
-                              )}
-                            >
+                          </div>
+                        </div>
+                        {/* Performance */}
+                        <div className="mt-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                          
+                          {/* Total performance */}
+                          <div
+                            className={cn(
+                              "flex items-center gap-1 text-[11px] font-medium",
+                              profit >= 0 ? "text-primary" : "text-rose-600",
+                            )}
+                          >
+                            
+                            <span className="text-base leading-none">
+                              
+                              {profit >= 0 ? "↗" : "↘"}
+                            </span>
+                            <span>
+                              
                               {profit >= 0 ? "+" : ""}
-                              {formatMoney(profit, settings)}
-                            </p>
-
-                            {typeof todayChange === "number" &&
-                              typeof todayChangeAmount === "number" && (
-                                <p
+                              {formatMoney(Math.abs(profit), settings)}
+                            </span>
+                            <span>
+                              
+                              ({profit >= 0 ? "+" : ""}
+                              {profitPercent.toFixed(1)}٪)
+                            </span>
+                          </div>
+                          {/* Today */}
+                          {typeof todayChange === "number" &&
+                            typeof todayChangeAmount === "number" && (
+                              <>
+                                
+                                <span className="h-3 w-px bg-border" />
+                                <div
                                   className={cn(
-                                    "mt-1 flex items-center justify-end gap-1 text-[11px] font-medium",
+                                    "flex items-center gap-1 text-[11px] font-medium",
                                     todayChange >= 0
                                       ? "text-primary"
                                       : "text-rose-600",
                                   )}
                                 >
+                                  
                                   <span className="text-muted-foreground">
+                                    
                                     امروز
                                   </span>
-                                  {todayChange >= 0 ? "+" : ""}
-                                  {formatMoney(
-                                    Math.abs(todayChangeAmount),
-                                    settings,
-                                  )}{" "}
-                                  ({todayChange >= 0 ? "+" : ""}
-                                  {todayChange.toFixed(1)}٪)
-                                </p>
-                              )}
-                          </div>
+                                  <span>
+                                    
+                                    {todayChange >= 0 ? "+" : ""}
+                                    {formatMoney(
+                                      Math.abs(todayChangeAmount),
+                                      settings,
+                                    )}
+                                  </span>
+                                  <span>
+                                    
+                                    ({todayChange >= 0 ? "+" : ""}
+                                    {todayChange.toFixed(1)}٪)
+                                  </span>
+                                </div>
+                              </>
+                            )}
                         </div>
-
                         {/* Quantity + actions */}
                         <div className="mt-3 flex items-center justify-between gap-2">
+                          
                           {/* Quantity */}
                           <div className="min-w-0">
+                            
                             <p className="mt-0.5 text-xs font-semibold">
-                              {formatQuantity(quantity)}{" "}
+                              
+                              {formatQuantity(quantity)}
                               <span className="font-normal text-muted-foreground">
+                                
                                 {investmentUnitLabel(investment.unit)}
                               </span>
                             </p>
                           </div>
-
                           {/* Actions */}
                           <div className="flex items-center gap-1">
+                            
                             {/* Buy */}
                             <Button
                               size="icon-sm"
@@ -764,9 +793,9 @@ export function InvestmentsScreen({
                               aria-label={`خرید ${investment.name}`}
                               title="خرید"
                             >
+                              
                               <ArrowDownLeft className="size-4" />
                             </Button>
-
                             {/* Sell */}
                             <Button
                               size="icon-sm"
@@ -783,9 +812,9 @@ export function InvestmentsScreen({
                               aria-label={`فروش ${investment.name}`}
                               title="فروش"
                             >
+                              
                               <ArrowUpLeft className="size-4" />
                             </Button>
-
                             {/* Edit */}
                             <Button
                               size="icon-sm"
@@ -798,9 +827,9 @@ export function InvestmentsScreen({
                               aria-label="ویرایش دارایی"
                               title="ویرایش"
                             >
+                              
                               <Edit3 className="size-4" />
                             </Button>
-
                             {/* Delete */}
                             <Button
                               size="icon-sm"
@@ -813,6 +842,7 @@ export function InvestmentsScreen({
                               aria-label="حذف دارایی"
                               title="حذف"
                             >
+                              
                               <Trash2 className="size-4" />
                             </Button>
                           </div>
@@ -872,7 +902,7 @@ export function InvestmentsScreen({
                         {investment.name}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {transactionKindLabel(transaction.kind)} ·{" "}
+                        {transactionKindLabel(transaction.kind)} ·
                         {dayWord(transaction.date)}
                       </p>
                     </div>
@@ -886,7 +916,7 @@ export function InvestmentsScreen({
                         {formatMoney(transaction.amount, settings)}
                       </p>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {formatQuantity(transaction.quantity)}{" "}
+                        {formatQuantity(transaction.quantity)}
                         {investmentUnitLabel(investment.unit)}
                       </p>
                     </div>
