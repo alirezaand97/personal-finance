@@ -152,6 +152,7 @@ import {
 import { chartColors } from "@/lib/chart";
 import { InvestmentAssetEditor } from "@/features/investments/InvestmentAssetEditor";
 import { InvestmentTransactionEditor } from "@/features/investments/InvestmentTransactionEditor";
+import { InvestmentDetailDialog } from "./Investmentdetaildialog";
 
 export function InvestmentsScreen({
   investments,
@@ -187,6 +188,9 @@ export function InvestmentsScreen({
     [],
   );
   const [fundQuotes, setFundQuotes] = useState<StockQuote[]>([]);
+  const [detailInvestment, setDetailInvestment] = useState<Investment | null>(
+    null,
+  );
 
   const loadTicker = async () => {
     const ids = [
@@ -232,23 +236,10 @@ export function InvestmentsScreen({
   };
 
   const checkAndSync = async () => {
-    console.log("🔄 checkAndSync اجرا شد", new Date().toLocaleTimeString());
-
     const [stockMeta, marketMeta] = await Promise.all([
       getStockSyncMeta(),
       getMarketSyncMeta(),
     ]);
-
-    console.log("آخرین سینک سهام:", stockMeta?.lastSyncedAt);
-    console.log("آخرین سینک مارکت:", marketMeta?.lastSyncedAt);
-    console.log(
-      "needsStockSync سهام:",
-      needsStockSync(stockMeta?.lastSyncedAt),
-    );
-    console.log(
-      "needsStockSync مارکت:",
-      needsStockSync(marketMeta?.lastSyncedAt),
-    );
 
     const latest = [stockMeta?.lastSyncedAt, marketMeta?.lastSyncedAt]
       .filter(Boolean)
@@ -260,10 +251,7 @@ export function InvestmentsScreen({
       needsStockSync(stockMeta?.lastSyncedAt) ||
       needsStockSync(marketMeta?.lastSyncedAt)
     ) {
-      console.log("✅ شرط برقرار شد → دارم سینک می‌کنم");
       await runSync();
-    } else {
-      console.log("❌ شرط برقرار نشد → سینک نمی‌کنم");
     }
   };
 
@@ -273,7 +261,7 @@ export function InvestmentsScreen({
     checkAndSync();
     // هر ۵ دقیقه چک می‌کند که آیا یک ساعت از آخرین سینک گذشته؛
     // خودِ needsStockSync مطمئن می‌شود که فقط بین ۸ تا ۲۰ سینک انجام شود
-    const interval = setInterval(checkAndSync, 2 * 60 * 1000);
+    const interval = setInterval(checkAndSync, 5 * 60 * 1000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -601,7 +589,10 @@ export function InvestmentsScreen({
                 return (
                   <Card
                     key={investment.id}
-                    className="overflow-hidden border-border/70 p-3.5 shadow-sm"
+                    className="overflow-hidden border-border/70 p-3.5 shadow-sm cursor-pointer transition-colors hover:bg-muted/30"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setDetailInvestment(investment)}
                   >
                     <div className="flex items-start gap-3">
                       {/* Asset icon */}
@@ -666,12 +657,13 @@ export function InvestmentsScreen({
                               size="icon-sm"
                               variant="ghost"
                               className="rounded-md text-primary hover:bg-primary/10 hover:text-primary"
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setTransactionEditor({
                                   investment,
                                   defaultKind: "buy",
-                                })
-                              }
+                                });
+                              }}
                               aria-label={`خرید ${investment.name}`}
                               title="خرید"
                             >
@@ -684,12 +676,13 @@ export function InvestmentsScreen({
                               variant="ghost"
                               disabled={quantity <= 0}
                               className="rounded-md text-rose-600 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setTransactionEditor({
                                   investment,
                                   defaultKind: "sell",
-                                })
-                              }
+                                });
+                              }}
                               aria-label={`فروش ${investment.name}`}
                               title="فروش"
                             >
@@ -701,7 +694,10 @@ export function InvestmentsScreen({
                               size="icon-sm"
                               variant="ghost"
                               className="rounded-md"
-                              onClick={() => setAssetEditor({ investment })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAssetEditor({ investment });
+                              }}
                               aria-label="ویرایش دارایی"
                               title="ویرایش"
                             >
@@ -713,7 +709,10 @@ export function InvestmentsScreen({
                               size="icon-sm"
                               variant="ghost"
                               className="rounded-md text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
-                              onClick={() => setDeleteTarget(investment)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget(investment);
+                              }}
                               aria-label="حذف دارایی"
                               title="حذف"
                             >
@@ -755,7 +754,6 @@ export function InvestmentsScreen({
                     key={transaction.id}
                     className="flex items-center gap-3 p-3"
                   >
-                    {" "}
                     <div
                       className={cn(
                         "flex size-10 shrink-0 items-center justify-center rounded-xl",
@@ -764,44 +762,37 @@ export function InvestmentsScreen({
                           : "bg-rose-500/10 text-rose-600",
                       )}
                     >
-                      {" "}
                       {transaction.kind === "buy" ? (
                         <ArrowDownLeft className="size-5" />
                       ) : transaction.kind === "sell" ? (
                         <ArrowUpLeft className="size-5" />
                       ) : (
                         <TrendingUp className="size-5" />
-                      )}{" "}
-                    </div>{" "}
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1">
-                      {" "}
                       <p className="truncate text-sm! font-medium">
-                        {" "}
-                        {investment.name}{" "}
-                      </p>{" "}
+                        {investment.name}
+                      </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {" "}
                         {transactionKindLabel(transaction.kind)} ·{" "}
-                        {dayWord(transaction.date)}{" "}
-                      </p>{" "}
-                    </div>{" "}
+                        {dayWord(transaction.date)}
+                      </p>
+                    </div>
                     <div className="text-left">
-                      {" "}
                       <p
                         className={cn(
                           "text-sm! font-medium!",
                           isPositive ? "text-primary" : "text-rose-600",
                         )}
                       >
-                        {" "}
-                        {formatMoney(transaction.amount, settings)}{" "}
-                      </p>{" "}
+                        {formatMoney(transaction.amount, settings)}
+                      </p>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {" "}
                         {formatQuantity(transaction.quantity)}{" "}
-                        {investmentUnitLabel(investment.unit)}{" "}
-                      </p>{" "}
-                    </div>{" "}
+                        {investmentUnitLabel(investment.unit)}
+                      </p>
+                    </div>
                     <Button
                       size="icon-sm"
                       variant="ghost"
@@ -810,18 +801,16 @@ export function InvestmentsScreen({
                       }
                       aria-label="ویرایش تراکنش"
                     >
-                      {" "}
-                      <Edit3 />{" "}
-                    </Button>{" "}
+                      <Edit3 />
+                    </Button>
                     <Button
                       size="icon-sm"
                       variant="ghost"
                       onClick={() => setDeleteTransactionTarget(transaction)}
                       aria-label="حذف تراکنش"
                     >
-                      {" "}
-                      <Trash2 />{" "}
-                    </Button>{" "}
+                      <Trash2 />
+                    </Button>
                   </Card>
                 );
               })}
@@ -857,6 +846,41 @@ export function InvestmentsScreen({
           onSaved={onRefresh}
         />
       )}
+
+      <InvestmentDetailDialog
+        open={!!detailInvestment}
+        investment={detailInvestment}
+        category={
+          detailInvestment
+            ? catMap.get(detailInvestment.categoryId)
+            : undefined
+        }
+        investmentTransactions={investmentTransactions}
+        settings={settings}
+        onClose={() => setDetailInvestment(null)}
+        onBuy={(inv) => {
+          setDetailInvestment(null);
+          setTransactionEditor({ investment: inv, defaultKind: "buy" });
+        }}
+        onSell={(inv) => {
+          setDetailInvestment(null);
+          setTransactionEditor({ investment: inv, defaultKind: "sell" });
+        }}
+        onEditAsset={(inv) => {
+          setDetailInvestment(null);
+          setAssetEditor({ investment: inv });
+        }}
+        onDeleteAsset={(inv) => {
+          setDetailInvestment(null);
+          setDeleteTarget(inv);
+        }}
+        onEditTransaction={(t) => {
+          if (!detailInvestment) return;
+          setDetailInvestment(null);
+          setTransactionEditor({ investment: detailInvestment, transaction: t });
+        }}
+        onDeleteTransaction={(t) => setDeleteTransactionTarget(t)}
+      />
 
       <Dialog
         open={!!deleteTarget}
