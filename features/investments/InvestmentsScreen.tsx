@@ -195,6 +195,11 @@ export function InvestmentsScreen({
   const [liveChangeMap, setLiveChangeMap] = useState<Map<string, number>>(
     new Map(),
   );
+  // symbolId -> اسم کوتاه (نماد) دارایی‌های زنده که از خودِ استعلام قیمت
+  // (stockQuotes.symbol) میاد؛ برای نمایش توی کارت به‌جای اسم کامل
+  const [liveSymbolMap, setLiveSymbolMap] = useState<Map<string, string>>(
+    new Map(),
+  );
 
   const loadTicker = async () => {
     const ids = [
@@ -220,6 +225,7 @@ export function InvestmentsScreen({
 
     if (!symbolIds.length) {
       setLiveChangeMap(new Map());
+      setLiveSymbolMap(new Map());
       return;
     }
 
@@ -234,13 +240,18 @@ export function InvestmentsScreen({
     ]);
 
     const map = new Map<string, number>();
+    const symbolMap = new Map<string, string>();
     stocks.forEach((q, idx) => {
-      if (q) map.set(stockIds[idx], q.changePercent);
+      if (q) {
+        map.set(stockIds[idx], q.changePercent);
+        if (q.symbol) symbolMap.set(stockIds[idx], q.symbol);
+      }
     });
     markets.forEach((q, idx) => {
       if (q) map.set(marketIds[idx], q.changePercent);
     });
     setLiveChangeMap(map);
+    setLiveSymbolMap(symbolMap);
   };
 
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
@@ -638,6 +649,10 @@ export function InvestmentsScreen({
                   typeof todayChange === "number"
                     ? getTodayChangeAmount(currentValue, todayChange)
                     : undefined;
+                const shortName = investment.symbolId
+                  ? liveSymbolMap.get(investment.symbolId)
+                  : undefined;
+                const displayName = shortName || investment.name;
 
                 return (
                   <Card
@@ -649,7 +664,7 @@ export function InvestmentsScreen({
                   >
                     <div className="flex items-start gap-3">
                       {/* Asset icon */}
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-md! bg-primary/10 text-primary">
                         <CategoryIcon category={cat} className="size-4" />
                       </span>
 
@@ -658,7 +673,7 @@ export function InvestmentsScreen({
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-xs font-medium">
-                              {investment.name}
+                              {displayName}
                             </p>
 
                             <p className="mt-1 text-[11px] text-muted-foreground">
@@ -669,17 +684,20 @@ export function InvestmentsScreen({
 
                           {/* Current value + profit since purchase + today's change */}
                           <div className="shrink-0 text-left">
-                            <p className="flex items-baseline gap-1.5 whitespace-nowrap text-sm font-bold">
-                              {formatMoney(currentValue, settings)}
+                            <p className="flex flex-wrap items-baseline justify-end gap-x-1.5 text-sm font-medium!">
                               <span
                                 className={cn(
                                   "text-[11px] font-medium",
                                   profit >= 0 ? "text-primary" : "text-rose-600",
                                 )}
                               >
-                                ({profit >= 0 ? "+" : ""}
+                                {profit >= 0 ? "+" : ""}
+                                {formatMoney(profit, settings)} (
+                                {profit >= 0 ? "+" : ""}
                                 {profitPercent.toFixed(1)}٪)
                               </span>
+                              <span>{formatMoney(currentValue, settings)}</span>
+                            
                             </p>
 
                             {typeof todayChange === "number" &&
