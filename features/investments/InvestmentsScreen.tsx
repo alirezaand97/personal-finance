@@ -683,33 +683,46 @@ export function InvestmentsScreen({
                           </div>
 
                           {/* Current value + profit since purchase + today's change */}
+                          {/* Current value + profit since purchase + today's change */}
                           <div className="shrink-0 text-left">
-                            <p className="flex flex-wrap items-baseline justify-end gap-x-1.5 text-sm font-medium!">
+                            <p className="flex items-baseline justify-end gap-1.5 whitespace-nowrap text-sm font-bold">
+                              <span>{formatMoney(currentValue, settings)}</span>
                               <span
                                 className={cn(
                                   "text-[11px] font-medium",
-                                  profit >= 0 ? "text-primary" : "text-rose-600",
+                                  profit >= 0
+                                    ? "text-primary"
+                                    : "text-rose-600",
                                 )}
                               >
-                                {profit >= 0 ? "+" : ""}
-                                {formatMoney(profit, settings)} (
-                                {profit >= 0 ? "+" : ""}
+                                ({profit >= 0 ? "+" : ""}
                                 {profitPercent.toFixed(1)}٪)
                               </span>
-                              <span>{formatMoney(currentValue, settings)}</span>
-                            
+                            </p>
+
+                            <p
+                              className={cn(
+                                "mt-1 text-[11px] font-medium",
+                                profit >= 0 ? "text-primary" : "text-rose-600",
+                              )}
+                            >
+                              {profit >= 0 ? "+" : ""}
+                              {formatMoney(profit, settings)}
                             </p>
 
                             {typeof todayChange === "number" &&
                               typeof todayChangeAmount === "number" && (
                                 <p
                                   className={cn(
-                                    "mt-0.5 text-[11px] font-medium",
+                                    "mt-1 flex items-center justify-end gap-1 text-[11px] font-medium",
                                     todayChange >= 0
                                       ? "text-primary"
                                       : "text-rose-600",
                                   )}
                                 >
+                                  <span className="text-muted-foreground">
+                                    امروز
+                                  </span>
                                   {todayChange >= 0 ? "+" : ""}
                                   {formatMoney(
                                     Math.abs(todayChangeAmount),
@@ -935,9 +948,7 @@ export function InvestmentsScreen({
         open={!!detailInvestment}
         investment={detailInvestment}
         category={
-          detailInvestment
-            ? catMap.get(detailInvestment.categoryId)
-            : undefined
+          detailInvestment ? catMap.get(detailInvestment.categoryId) : undefined
         }
         investmentTransactions={investmentTransactions}
         settings={settings}
@@ -966,7 +977,10 @@ export function InvestmentsScreen({
         onEditTransaction={(t) => {
           if (!detailInvestment) return;
           setDetailInvestment(null);
-          setTransactionEditor({ investment: detailInvestment, transaction: t });
+          setTransactionEditor({
+            investment: detailInvestment,
+            transaction: t,
+          });
         }}
         onDeleteTransaction={(t) => setDeleteTransactionTarget(t)}
       />
