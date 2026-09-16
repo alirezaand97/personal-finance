@@ -761,7 +761,7 @@ export function InvestmentsScreen({
                           </p>
                         </div>
 
-                        <div className="mt-1.5 flex items-center justify-end gap-2">
+                        <div className="mt-0.5 flex items-center justify-end gap-2">
                           <span
                             className={cn(
                               "text-[11px] font-medium",
