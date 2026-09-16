@@ -147,6 +147,7 @@ import {
   transactionKindLabel,
   currencyTickerSymbols,
   goldTickerSymbols,
+  getTodayChangeAmount,
 } from "@/features/investments/utils";
 import { chartColors } from "@/lib/chart";
 import { InvestmentAssetEditor } from "@/features/investments/InvestmentAssetEditor";
@@ -633,6 +634,10 @@ export function InvestmentsScreen({
                 const todayChange = investment.symbolId
                   ? liveChangeMap.get(investment.symbolId)
                   : undefined;
+                const todayChangeAmount =
+                  typeof todayChange === "number"
+                    ? getTodayChangeAmount(currentValue, todayChange)
+                    : undefined;
 
                 return (
                   <Card
@@ -655,21 +660,8 @@ export function InvestmentsScreen({
                             <p className="truncate text-sm font-semibold flex items-center gap-1">
                               {investment.name}
                               {investment.symbolId && (
-                                <span className="ms-1.5 flex items-center gap-1 rounded-sm bg-primary/10 px-1.5 align-middle text-[9px] font-normal text-primary">
+                                <span className="ms-1.5 rounded-sm bg-primary/10 px-1.5 align-middle text-[9px] font-normal text-primary">
                                   زنده
-                                  {typeof todayChange === "number" && (
-                                    <span
-                                      className={cn(
-                                        "font-medium",
-                                        todayChange >= 0
-                                          ? "text-primary"
-                                          : "text-rose-600",
-                                      )}
-                                    >
-                                      {todayChange >= 0 ? "+" : ""}
-                                      {todayChange.toFixed(1)}٪
-                                    </span>
-                                  )}
                                 </span>
                               )}
                             </p>
@@ -680,7 +672,7 @@ export function InvestmentsScreen({
                             </p>
                           </div>
 
-                          {/* Current value + profit since purchase */}
+                          {/* Current value + profit since purchase + today's change */}
                           <div className="shrink-0 text-left">
                             <p className="text-sm font-bold">
                               {formatMoney(currentValue, settings)}
@@ -696,6 +688,26 @@ export function InvestmentsScreen({
                               {formatMoney(profit, settings)} (
                               {profitPercent.toFixed(1)}٪)
                             </p>
+
+                            {typeof todayChange === "number" &&
+                              typeof todayChangeAmount === "number" && (
+                                <p
+                                  className={cn(
+                                    "mt-0.5 text-[11px] font-medium",
+                                    todayChange >= 0
+                                      ? "text-primary"
+                                      : "text-rose-600",
+                                  )}
+                                >
+                                  {todayChange >= 0 ? "+" : ""}
+                                  {formatMoney(
+                                    Math.abs(todayChangeAmount),
+                                    settings,
+                                  )}{" "}
+                                  ({todayChange >= 0 ? "+" : ""}
+                                  {todayChange.toFixed(1)}٪)
+                                </p>
+                              )}
                           </div>
                         </div>
 
