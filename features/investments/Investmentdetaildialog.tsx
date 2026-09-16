@@ -11,6 +11,8 @@ import {
   ArrowUpLeft,
   Edit3,
   Trash2,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import {
   Dialog,
@@ -19,7 +21,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatQuantity, getInvestmentMetrics, investmentUnitLabel, transactionKindLabel } from "./utils";
+import {
+  formatQuantity,
+  getInvestmentMetrics,
+  investmentUnitLabel,
+  transactionKindLabel,
+} from "@/features/investments/utils";
 
 import { Button } from "@/components/ui/button";
 import { CategoryIcon } from "@/components/common/CategoryIcon";
@@ -32,6 +39,7 @@ export function InvestmentDetailDialog({
   category,
   investmentTransactions,
   settings,
+  todayChangePercent,
   onClose,
   onBuy,
   onSell,
@@ -45,6 +53,8 @@ export function InvestmentDetailDialog({
   category?: InvestmentCategory;
   investmentTransactions: InvestmentTransaction[];
   settings: AppSettings;
+  /** درصد تغییر قیمت امروز؛ فقط برای دارایی‌های زنده (symbolId) موجوده */
+  todayChangePercent?: number;
   onClose: () => void;
   onBuy: (investment: Investment) => void;
   onSell: (investment: Investment) => void;
@@ -57,19 +67,19 @@ export function InvestmentDetailDialog({
     if (!investment) return null;
     return getInvestmentMetrics(investment, investmentTransactions);
   }, [investment, investmentTransactions]);
- 
+
   const history = useMemo(() => {
     if (!investment) return [];
     return investmentTransactions
       .filter((t) => t.investmentId === investment.id)
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [investment, investmentTransactions]);
- 
+
   if (!investment || !metrics) return null;
- 
+
   const averageBuyPrice =
     metrics.quantity > 0 ? metrics.netInvested / metrics.quantity : 0;
- 
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -93,26 +103,55 @@ export function InvestmentDetailDialog({
             </div>
           </div>
         </DialogHeader>
- 
+
         <div className="space-y-4">
-          {/* ارزش فعلی + سود/زیان */}
+          {/* ارزش فعلی + سود/زیان از زمان خرید */}
           <div className="rounded-2xl bg-primary/[0.06] p-4">
             <p className="text-xs text-muted-foreground">ارزش فعلی</p>
             <p className="mt-1 text-2xl font-bold tracking-tight">
               {formatMoney(metrics.currentValue, settings)}
             </p>
-            <p
-              className={cn(
-                "mt-1 text-sm font-medium",
-                metrics.profit >= 0 ? "text-primary" : "text-rose-600",
+            <div className="mt-2 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground">
+                  سود / زیان از زمان خرید
+                </p>
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    metrics.profit >= 0 ? "text-primary" : "text-rose-600",
+                  )}
+                >
+                  {metrics.profit >= 0 ? "+" : ""}
+                  {formatMoney(metrics.profit, settings)} (
+                  {metrics.profitPercent.toFixed(1)}٪)
+                </p>
+              </div>
+              {typeof todayChangePercent === "number" && (
+                <div className="text-left">
+                  <p className="text-[10px] text-muted-foreground">
+                    تغییر قیمت امروز
+                  </p>
+                  <p
+                    className={cn(
+                      "flex items-center gap-1 text-sm font-medium",
+                      todayChangePercent >= 0
+                        ? "text-primary"
+                        : "text-rose-600",
+                    )}
+                  >
+                    {todayChangePercent >= 0 ? (
+                      <TrendingUp className="size-3.5" />
+                    ) : (
+                      <TrendingDown className="size-3.5" />
+                    )}
+                    {Math.abs(todayChangePercent).toFixed(2)}٪
+                  </p>
+                </div>
               )}
-            >
-              {metrics.profit >= 0 ? "+" : ""}
-              {formatMoney(metrics.profit, settings)} (
-              {metrics.profitPercent.toFixed(1)}٪)
-            </p>
+            </div>
           </div>
- 
+
           {/* جزئیات ریز */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-muted/50 p-3">
@@ -161,7 +200,7 @@ export function InvestmentDetailDialog({
               </div>
             )}
           </div>
- 
+
           {/* اکشن‌های سریع */}
           <div className="flex gap-2">
             <Button className="flex-1 gap-1.5" onClick={() => onBuy(investment)}>
@@ -195,7 +234,7 @@ export function InvestmentDetailDialog({
               <Trash2 />
             </Button>
           </div>
- 
+
           {/* تاریخچه تراکنش‌ها */}
           <div>
             <p className="mb-2 text-sm font-bold">
@@ -280,4 +319,3 @@ export function InvestmentDetailDialog({
     </Dialog>
   );
 }
- 
