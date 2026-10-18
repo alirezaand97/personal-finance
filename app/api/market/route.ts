@@ -3,132 +3,132 @@ import { redis } from "@/lib/redis"
 
 export const dynamic = "force-dynamic"
 
-const CACHE_KEY = "market:quotes"
-const LOCK_KEY = "lock:market:quotes"
+const UPSTREAM_URL =
+  "https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/latest-toman.json"
 
-const FRESH_TTL = 60 * 2          // ۱۰ دقیقه
-const MAX_STALE_TTL = 60 * 60      // ۱ ساعت
+// نسخه‌ی کلید عوض شد تا کش قدیمی (با ساختار قبلی) سرو نشود
+const CACHE_KEY = "market:quotes:v2"
+const LOCK_KEY = "lock:market:quotes:v2"
+
+const FRESH_TTL = 60 * 5          // ۵ دقیقه (منبع هر ۳۰ دقیقه آپدیت می‌شود)
+const MAX_STALE_TTL = 60 * 60 * 6 // ۶ ساعت
 const LOCK_TTL = 15
 
-type CachePayload = {
-  data: any
-  updatedAt: number
+type Quote = {
+  symbol: string
+  name: string
+  price: number
+  unit: string
+  change_percent: number
+}
+
+type Normalized = {
+  updated_at: string | null
+  gold: Quote[]
+  currency: Quote[]
+  crypto: Quote[]
+}
+
+type CachePayload = { data: Normalized; updatedAt: number }
+
+function toQuote(d: any, usdRate?: number): Quote | null {
+  if (!d?.symbol || !(Number(d.price) > 0)) return null
+  let price = Number(d.price)
+  let unit = "تومان"
+  if (d.currency === "USD") {
+    if (usdRate) price = Math.round(price * usdRate)
+    else unit = "دلار"
+  }
+  return {
+    symbol: d.symbol,
+    name: d.name_fa || d.name_en || d.symbol,
+    price,
+    unit,
+    change_percent: Number(d.change_pct) || 0,
+  }
+}
+
+const isUsable = (d: any) =>
+  d && d.stale !== true && !d.quality?.includes("ohlc_inconsistent")
+
+function normalize(json: any): Normalized {
+  const cats = json?.data?.categories
+  if (!cats) throw new Error("Unexpected upstream format")
+
+  const usdRate: number | undefined = cats.currency?.find(
+    (d: any) => d.symbol === "USD_IRR_FREE",
+  )?.price
+
+  const pick = (items: any[] = [], usd?: number) =>
+    items.filter(isUsable).map((d) => toQuote(d, usd)).filter(Boolean) as Quote[]
+
+  return {
+    updated_at: json?.data?.generated_at ?? null,
+    // طلا + سکه + فلزات گران‌بها (انس طلا/نقره/...)
+    gold: [
+      ...pick(cats.gold),
+      ...pick(cats.coin),
+      ...pick(cats.precious_metal),
+    ],
+    // جفت‌ارزهای DIFF_* نرخ بین‌المللی هستند، نه تومان بازار آزاد
+    currency: pick(
+      (cats.currency ?? []).filter((d: any) => !d.symbol.startsWith("DIFF_")),
+    ),
+    // قیمت‌های دلاری با نرخ دلار آزاد به تومان تبدیل می‌شوند
+    crypto: pick(cats.crypto, usdRate),
+  }
+}
+
+async function fetchUpstream(): Promise<Normalized> {
+  const res = await fetch(UPSTREAM_URL, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`Upstream error: ${res.status}`)
+  const data = normalize(await res.json())
+  const payload: CachePayload = { data, updatedAt: Date.now() }
+  await redis.set(CACHE_KEY, payload, { ex: MAX_STALE_TTL })
+  return data
 }
 
 export async function GET() {
-  const apiKey = process.env.BRSAPI_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: "کلید API تنظیم نشده" }, { status: 500 })
-  }
-
   try {
     const now = Date.now()
     const cached = await redis.get<CachePayload>(CACHE_KEY)
 
-    // ---------- لاگ وضعیت کش ----------
-    if (cached) {
-      const ageSeconds = Math.round((now - cached.updatedAt) / 1000)
-      console.log(`[Market] کش پیدا شد | سن داده: ${ageSeconds} ثانیه`)
-    } else {
-      console.log(`[Market] هیچ کشی وجود ندارد`)
-    }
-
-    // اگر داده وجود داشت
     if (cached) {
       const age = (now - cached.updatedAt) / 1000
 
-      // هنوز تازه است
-      if (age < FRESH_TTL) {
-        console.log(`[Market] ✅ داده تازه است → از کش برگردانده شد`)
-        return NextResponse.json(cached.data)
-      }
+      if (age < FRESH_TTL) return NextResponse.json(cached.data)
 
-      // قدیمی شده ولی هنوز قابل استفاده است
-      if (age < MAX_STALE_TTL) {
-        console.log(`[Market] ⚠️ داده قدیمی شده (Stale) → سعی می‌کنم آپدیت کنم`)
-
-        const gotLock = await redis.set(LOCK_KEY, "1", { nx: true, ex: LOCK_TTL })
-
-        if (gotLock) {
-          console.log(`[Market] 🔒 قفل گرفته شد → دارم از API خارجی درخواست می‌زنم...`)
-
-          try {
-            const res = await fetch(
-              `https://Api.BrsApi.ir/Market/Gold_Currency.php?key=${apiKey}`,
-              { cache: "no-store" },
-            )
-
-            if (res.ok) {
-              const data = await res.json()
-              const payload: CachePayload = {
-                data,
-                updatedAt: Date.now(),
-              }
-              await redis.set(CACHE_KEY, payload, { ex: MAX_STALE_TTL })
-              console.log(`[Market] ✅ داده جدید گرفته و در کش ذخیره شد`)
-            } else {
-              console.log(`[Market] ❌ درخواست به API خارجی ناموفق بود (status: ${res.status})`)
-            }
-          } catch (err) {
-            console.error(`[Market] ❌ خطا در گرفتن داده جدید:`, err)
-          } finally {
-            await redis.del(LOCK_KEY)
-            console.log(`[Market] 🔓 قفل آزاد شد`)
-          }
-        } else {
-          console.log(`[Market] ⏳ قفل گرفته نشد (یکی دیگر در حال آپدیت است) → داده قدیمی برگردانده شد`)
+      // قدیمی ولی قابل استفاده → سعی در آپدیت، در هر حالت داده‌ی فعلی برگردد
+      const gotLock = await redis.set(LOCK_KEY, "1", { nx: true, ex: LOCK_TTL })
+      if (gotLock) {
+        try {
+          return NextResponse.json(await fetchUpstream())
+        } catch (err) {
+          console.error("[Market] refresh failed:", err)
+        } finally {
+          await redis.del(LOCK_KEY)
         }
-
-        // در هر صورت داده فعلی را برگردان
-        return NextResponse.json(cached.data)
       }
+      return NextResponse.json(cached.data)
     }
 
-    // هیچ داده‌ای وجود ندارد یا خیلی قدیمی شده
-    console.log(`[Market] 🆕 هیچ داده معتبری وجود ندارد → باید از صفر بگیرم`)
-
+    // هیچ کشی نیست
     const gotLock = await redis.set(LOCK_KEY, "1", { nx: true, ex: LOCK_TTL })
-
     if (gotLock) {
-      console.log(`[Market] 🔒 قفل گرفته شد → دارم از API خارجی درخواست می‌زنم...`)
-
       try {
-        const res = await fetch(
-          `https://Api.BrsApi.ir/Market/Gold_Currency.php?key=${apiKey}`,
-          { cache: "no-store" },
-        )
-
-        if (!res.ok) {
-          throw new Error(`Upstream error: ${res.status}`)
-        }
-
-        const data = await res.json()
-        const payload: CachePayload = {
-          data,
-          updatedAt: Date.now(),
-        }
-
-        await redis.set(CACHE_KEY, payload, { ex: MAX_STALE_TTL })
-        console.log(`[Market] ✅ داده جدید گرفته و در کش ذخیره شد`)
-
-        return NextResponse.json(data)
+        return NextResponse.json(await fetchUpstream())
       } finally {
         await redis.del(LOCK_KEY)
-        console.log(`[Market] 🔓 قفل آزاد شد`)
       }
     }
 
-    // قفل گرفته نشد
-    console.log(`[Market] ⏳ قفل گرفته نشد → کمی صبر می‌کنم...`)
     await new Promise((r) => setTimeout(r, 700))
-
     const retry = await redis.get<CachePayload>(CACHE_KEY)
-    if (retry) {
-      console.log(`[Market] ✅ بعد از صبر، داده پیدا شد → برگردانده شد`)
-      return NextResponse.json(retry.data)
-    }
+    if (retry) return NextResponse.json(retry.data)
 
-    console.log(`[Market] ❌ بعد از صبر هم داده‌ای پیدا نشد`)
     return NextResponse.json(
       { error: "در حال بارگذاری قیمت‌ها، لطفاً چند ثانیه دیگر تلاش کنید" },
       { status: 503 },
