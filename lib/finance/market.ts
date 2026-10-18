@@ -23,61 +23,34 @@ export async function syncMarketQuotes() {
   if (!res.ok) throw new Error("دریافت قیمت‌ها ناموفق بود")
 
   const raw: {
+    updated_at?: string | null
     gold?: any[]
     currency?: any[]
-    cryptocurrency?: any[]
+    crypto?: any[]
   } = await res.json()
 
   const now = new Date().toISOString()
   const quotes: MarketQuote[] = []
 
-  const usdRate =
-    raw.currency?.find((d) => d.symbol === "USD")?.price ??
-    raw.currency?.find((d) => d.symbol === "USDT_IRT")?.price
-
-  ;(raw.gold ?? []).forEach((d) => {
-    if (!d?.symbol) return
-    quotes.push({
-      id: `gold:${d.symbol}`,
-      market: "gold",
-      symbol: d.symbol,
-      name: d.name ?? d.name_en ?? d.symbol,
-      price: Number(d.price) || 0,
-      unit: d.unit ?? "تومان",
-      changePercent: Number(d.change_percent) || 0,
-      updatedAt: now,
+  const push = (market: MarketKind, items: any[] = []) => {
+    items.forEach((d) => {
+      if (!d?.symbol) return
+      quotes.push({
+        id: `${market}:${d.symbol}`,
+        market,
+        symbol: d.symbol,
+        name: d.name ?? d.symbol,
+        price: Number(d.price) || 0,
+        unit: d.unit ?? "تومان",
+        changePercent: Number(d.change_percent) || 0,
+        updatedAt: now,
+      })
     })
-  })
+  }
 
-  ;(raw.currency ?? []).forEach((d) => {
-    if (!d?.symbol) return
-    quotes.push({
-      id: `currency:${d.symbol}`,
-      market: "currency",
-      symbol: d.symbol,
-      name: d.name ?? d.name_en ?? d.symbol,
-      price: Number(d.price) || 0,
-      unit: d.unit ?? "تومان",
-      changePercent: Number(d.change_percent) || 0,
-      updatedAt: now,
-    })
-  })
-
-  ;(raw.cryptocurrency ?? []).forEach((d) => {
-    if (!d?.symbol) return
-    const rawPrice = Number(d.price) || 0
-    const converted = usdRate ? Math.round(rawPrice * usdRate) : rawPrice
-    quotes.push({
-      id: `crypto:${d.symbol}`,
-      market: "crypto",
-      symbol: d.symbol,
-      name: d.name ?? d.name_en ?? d.symbol,
-      price: converted,
-      unit: usdRate ? "تومان" : (d.unit ?? "دلار"),
-      changePercent: Number(d.change_percent) || 0,
-      updatedAt: now,
-    })
-  })
+  push("gold", raw.gold)
+  push("currency", raw.currency)
+  push("crypto", raw.crypto)
 
   await db.transaction(
     "rw",
