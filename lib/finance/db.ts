@@ -164,6 +164,50 @@ class FinanceDB extends Dexie {
       portfolioSnapshots: "date",
       recurringBills: "id, categoryId, dueDay, active, createdAt",
     })
+    this.version(10)
+  .stores({
+    transactions: "id, type, date, categoryId, createdAt",
+    categories: "id, type",
+    settings: "id",
+    investments: "id, categoryId, name, symbolId, createdAt",
+    investmentTransactions: "id, investmentId, kind, date, createdAt",
+    investmentCategories: "id, createdAt",
+    stockQuotes: "isin, symbol, name",
+    stockSyncMeta: "id",
+    marketQuotes: "id, market, symbol, name",
+    marketSyncMeta: "id",
+    portfolioSnapshots: "date",
+    recurringBills: "id, categoryId, dueDay, active, createdAt",
+  })
+  .upgrade(async (tx) => {
+    const symbolMap: Record<string, string> = {
+      "currency:USD": "currency:USD_IRR_FREE",
+      "currency:CAD": "currency:CAD_IRR_FREE",
+      "currency:EUR": "currency:EUR_IRR_FREE",
+
+      "gold:IR_GOLD_18K": "gold:GOLD_18K_IRR",
+      "gold:IR_GOLD_24K": "gold:GOLD_24K_IRR",
+
+      "gold:IR_COIN_1G": "gold:COIN_GRAMI_IRR",
+      "gold:IR_COIN_QUARTER": "gold:COIN_QUARTER_IRR",
+      "gold:IR_COIN_HALF": "gold:COIN_HALF_IRR",
+      "gold:IR_COIN_EMAMI": "gold:COIN_EMAMI_IRR",
+      "gold:IR_COIN_BAHAR": "gold:COIN_BAHAR_IRR",
+    };
+
+    const table = tx.table("investments");
+    const investments = await table.toArray();
+
+    await Promise.all(
+      investments
+        .filter((investment) => investment.symbolId && symbolMap[investment.symbolId])
+        .map((investment) =>
+          table.update(investment.id, {
+            symbolId: symbolMap[investment.symbolId!],
+          }),
+        ),
+    );
+  });
   }
 }
 
