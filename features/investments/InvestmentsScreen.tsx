@@ -388,14 +388,14 @@ export function InvestmentsScreen({
   }, 0);
 
   useEffect(() => {
-    const usd = currencyGoldQuotes.find((q) => q.id === "currency:USD");
+  const usd = currencyGoldQuotes.find(
+    (q) => q.id === "currency:USD_IRR_FREE",
+  );
 
-    if (!usd || totalValue <= 0) return;
+  if (!usd || totalValue <= 0) return;
 
-    savePortfolioSnapshot(totalValue, usd.price).then(loadSnapshots);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalValue, currencyGoldQuotes]);
+  savePortfolioSnapshot(totalValue, usd.price).then(loadSnapshots);
+}, [totalValue, currencyGoldQuotes]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
