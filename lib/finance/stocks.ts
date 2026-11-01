@@ -81,12 +81,15 @@ export async function syncStockQuotes() {
       const investments = await db.investments.toArray();
       const updates = investments
         .filter((inv) => inv.symbolId && quoteMap.has(inv.symbolId))
-        .map((inv) =>
-          db.investments.update(inv.id, {
-            currentPrice: quoteMap.get(inv.symbolId!)!.lastPrice,
-            updatedAt: now,
-          }),
-        );
+        .map((inv) => {
+  const quote = quoteMap.get(inv.symbolId!)!;
+
+  return db.investments.update(inv.id, {
+    name: quote.symbol,
+    currentPrice: quote.lastPrice,
+    updatedAt: now,
+  });
+});
       await Promise.all(updates);
     },
   );
