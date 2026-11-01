@@ -37,14 +37,19 @@ export function transactionKindLabel(kind: InvestmentTransaction["kind"]) {
 }
 
 export const currencyTickerSymbols = [
-  { symbol: "USD", label: "دلار" }, { symbol: "CAD", label: "دلار کانادا" }, { symbol: "EUR", label: "یورو" },
+  { symbol: "USD_IRR_FREE", label: "دلار" },
+  { symbol: "CAD_IRR_FREE", label: "دلار کانادا" },
+  { symbol: "EUR_IRR_FREE", label: "یورو" },
 ];
 
 export const goldTickerSymbols = [
-  { symbol: "IR_GOLD_18K", label: "طلای ۱۸ عیار" }, { symbol: "IR_GOLD_24K", label: "طلای ۲۴ عیار" },
-  { symbol: "IR_COIN_1G", label: "سکه یک گرمی" }, { symbol: "IR_COIN_QUARTER", label: "ربع سکه" },
-  { symbol: "IR_COIN_HALF", label: "نیم سکه" }, { symbol: "IR_COIN_EMAMI", label: "سکه امامی" },
-  { symbol: "IR_COIN_BAHAR", label: "سکه بهار آزادی" },
+  { symbol: "GOLD_18K_IRR", label: "طلای ۱۸ عیار" },
+  { symbol: "GOLD_24K_IRR", label: "طلای ۲۴ عیار" },
+  { symbol: "COIN_GRAMI_IRR", label: "سکه یک گرمی" },
+  { symbol: "COIN_QUARTER_IRR", label: "ربع سکه" },
+  { symbol: "COIN_HALF_IRR", label: "نیم سکه" },
+  { symbol: "COIN_EMAMI_IRR", label: "سکه امامی" },
+  { symbol: "COIN_BAHAR_IRR", label: "سکه بهار آزادی" },
 ];
 
 export type LiveMarketKind = "stock" | "gold" | "currency" | "crypto";
