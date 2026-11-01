@@ -138,13 +138,13 @@ export function InvestmentAssetEditor({
         return;
       }
       const payload = {
-        name: selectedStock.name,
-        categoryId,
-        unit: "share" as const,
-        currentPrice: selectedStock.lastPrice,
-        symbolId: selectedStock.isin,
-        updatedAt: now,
-      };
+  name: selectedStock.symbol,
+  categoryId,
+  unit: "share" as const,
+  currentPrice: selectedStock.lastPrice,
+  symbolId: selectedStock.isin,
+  updatedAt: now,
+};
       if (investment) {
         await db.investments.update(investment.id, payload);
       } else {
